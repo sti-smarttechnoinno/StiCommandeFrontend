@@ -1,9 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types';
-import { Clock, CheckCircle, Package, Truck, XCircle, AlertOctagon } from 'lucide-react';
+import { Clock, CheckCircle, Package, Truck, XCircle, AlertOctagon, AlertCircle } from 'lucide-react';
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; style: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Record<string, { label: string; style: string; icon: React.ReactNode }> = {
   pending: {
     label: 'Pending',
     style: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -13,6 +13,11 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; style: string; icon: R
     label: 'Validated',
     style: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     icon: <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />,
+  },
+  partially_validated: {
+    label: 'Validated (Partial)',
+    style: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+    icon: <AlertCircle className="h-3 w-3 text-amber-600 dark:text-amber-400" />,
   },
   preparing: {
     label: 'Preparing',
@@ -36,8 +41,8 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; style: string; icon: R
   },
 };
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const cfg = STATUS_CONFIG[status];
+export function OrderStatusBadge({ status }: { status: OrderStatus | string }) {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
   return (
     <Badge
       variant="ghost"

@@ -15,6 +15,7 @@ import { AboutSystem } from '@/features/settings/components/about-system';
 import { StorageUsageCard } from '@/features/settings/components/storage-usage-card';
 import { RecentChangesCard } from '@/features/settings/components/recent-changes-card';
 import { QuickActionsCard } from '@/features/settings/components/quick-actions-card';
+import { CatalogSettings } from '@/features/settings/components/catalog-settings';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 function SettingsContent() {
@@ -25,6 +26,8 @@ function SettingsContent() {
       return <GeneralSettings />;
     case 'company':
       return <CompanyForm />;
+    case 'catalog':
+      return <CatalogSettings />;
     case 'security':
       return <SecuritySettings />;
     case 'notifications':

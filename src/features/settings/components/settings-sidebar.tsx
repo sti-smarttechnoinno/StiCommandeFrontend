@@ -26,6 +26,7 @@ import {
 const NAV_ITEMS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { id: 'general', label: 'General Settings', icon: <Settings className="h-4 w-4" /> },
   { id: 'company', label: 'Company Profile', icon: <Building2 className="h-4 w-4" /> },
+  { id: 'catalog', label: 'Operators & Catalog', icon: <Globe className="h-4 w-4" /> },
   { id: 'users', label: 'Users & Permissions', icon: <Users className="h-4 w-4" /> },
   { id: 'security', label: 'Security & Auth', icon: <Shield className="h-4 w-4" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },

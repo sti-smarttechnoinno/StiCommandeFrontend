@@ -1,8 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useReactTable, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, flexRender, type ColumnDef, type SortingState } from '@tanstack/react-table';
-import { useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+} from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,29 +18,81 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { MOCK_USERS } from '../mock-data';
 import { useUsersStore } from '../store';
 import { getRoleColor, getRoleLabel, getStatusColor, getStatusDot, getStatusLabel, getAvatarColor } from '../utils';
+import { usersService } from '@/services/users';
+import type { UserRow } from '../types';
 import { toast } from 'sonner';
-import { Eye, Pencil, KeyRound, Lock, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, ArrowUpDown, Shield } from 'lucide-react';
+import {
+  Eye,
+  Pencil,
+  KeyRound,
+  Lock,
+  Trash2,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Loader2,
+  Users,
+} from 'lucide-react';
 
 export function UsersTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const { searchQuery, selectedUsers, toggleUserSelection, selectAllUsers, setDetailsDrawerOpen } = useUsersStore();
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const filteredData = useMemo(() => {
-    let data = [...MOCK_USERS];
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      data = data.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.employeeId.toLowerCase().includes(q));
+  const {
+    searchQuery,
+    selectedRole,
+    selectedRegion,
+    selectedWilaya,
+    selectedStatus,
+    selectedUsers,
+    toggleUserSelection,
+    selectAllUsers,
+    setDetailsDrawerOpen,
+  } = useUsersStore();
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = {};
+      if (searchQuery) params.search = searchQuery;
+      if (selectedRole && selectedRole !== 'all') params.role = [selectedRole];
+      if (selectedStatus && selectedStatus !== 'all') params.status = [selectedStatus];
+      if (selectedRegion && selectedRegion !== 'all') params.region = [selectedRegion];
+      if (selectedWilaya && selectedWilaya !== 'all') params.wilaya = [selectedWilaya];
+
+      const res = await usersService.list(params);
+      setUsers(res.data);
+      setTotal(res.total);
+    } catch {
+      toast.error('Failed to load users from server');
+    } finally {
+      setLoading(false);
     }
-    return data;
-  }, [searchQuery]);
+  };
 
-  const allIds = filteredData.map((u) => u.id);
+  useEffect(() => {
+    fetchUsers();
+  }, [searchQuery, selectedRole, selectedRegion, selectedWilaya, selectedStatus]);
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    try {
+      await usersService.delete(id);
+      toast.success(`User "${name}" deleted successfully`);
+      fetchUsers();
+    } catch {
+      toast.error('Failed to delete user');
+    }
+  };
+
+  const allIds = users.map((u) => u.id);
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedUsers.has(id));
 
-  const columns = useMemo<ColumnDef<typeof MOCK_USERS[0]>[]>(
+  const columns = useMemo<ColumnDef<UserRow>[]>(
     () => [
       {
         id: 'select',
@@ -88,8 +147,9 @@ export function UsersTable() {
         accessorKey: 'wilaya',
         header: 'Territory / Wilaya',
         cell: ({ row }) => (
-          <div className="text-xs font-medium text-foreground">
-            {row.original.wilaya || 'Central Headquarters'}
+          <div>
+            <span className="block text-xs font-medium text-foreground">{row.original.wilaya}</span>
+            <span className="block text-[10px] text-muted-foreground">{row.original.region}</span>
           </div>
         ),
       },
@@ -97,46 +157,41 @@ export function UsersTable() {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => (
-          <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-semibold', getStatusColor(row.original.status))}>
-            <span className={cn('w-1.5 h-1.5 rounded-full', getStatusDot(row.original.status))} />
+          <Badge variant="outline" className={cn('gap-1.5 text-[10px] font-bold border-0', getStatusColor(row.original.status))}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', getStatusDot(row.original.status))} />
             {getStatusLabel(row.original.status)}
-          </span>
+          </Badge>
         ),
       },
       {
-        accessorKey: 'twoFactorEnabled',
-        header: '2FA',
+        accessorKey: 'lastLogin',
+        header: 'Last Active',
         cell: ({ row }) => (
-          <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', row.original.twoFactorEnabled ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground')}>
-            {row.original.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-          </span>
+          <span className="text-xs text-muted-foreground">{row.original.lastLogin}</span>
         ),
       },
       {
         id: 'actions',
-        header: '',
         cell: ({ row }) => (
           <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none">
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-lg pointer-events-none">
-                <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
+            <DropdownMenuTrigger className="h-8 w-8 rounded-lg hover:bg-muted inline-flex items-center justify-center">
+              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 shadow-md">
-              <DropdownMenuItem onClick={() => { setDetailsDrawerOpen(true, row.original.id); }} className="rounded-lg text-xs font-medium cursor-pointer">
-                <Eye className="h-3.5 w-3.5 mr-2" /> View Details
+            <DropdownMenuContent align="end" className="w-48 rounded-xl">
+              <DropdownMenuItem onClick={() => setDetailsDrawerOpen(true, row.original.id)} className="gap-2 text-xs font-medium">
+                <Eye className="h-3.5 w-3.5 text-blue-500" /> View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info('Editing user')} className="rounded-lg text-xs font-medium cursor-pointer">
-                <Pencil className="h-3.5 w-3.5 mr-2" /> Edit User
+              <DropdownMenuItem onClick={() => setDetailsDrawerOpen(true, row.original.id)} className="gap-2 text-xs font-medium">
+                <Pencil className="h-3.5 w-3.5 text-amber-500" /> Edit Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info('Password reset initiated')} className="rounded-lg text-xs font-medium cursor-pointer">
-                <KeyRound className="h-3.5 w-3.5 mr-2" /> Reset Password
+              <DropdownMenuItem onClick={() => toast.success(`Password reset link sent to ${row.original.email}`)} className="gap-2 text-xs font-medium">
+                <KeyRound className="h-3.5 w-3.5 text-emerald-500" /> Reset Password
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info('Account locked')} className="rounded-lg text-xs font-medium cursor-pointer">
-                <Lock className="h-3.5 w-3.5 mr-2" /> Lock Account
+              <DropdownMenuItem onClick={() => toast.info(`Account status updated for ${row.original.name}`)} className="gap-2 text-xs font-medium">
+                <Lock className="h-3.5 w-3.5 text-indigo-500" /> Lock Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.error('User deleted')} className="rounded-lg text-xs font-medium cursor-pointer text-destructive focus:text-destructive">
-                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete User
+              <DropdownMenuItem onClick={() => handleDeleteUser(row.original.id, row.original.name)} className="gap-2 text-xs font-medium text-rose-600 focus:text-rose-600">
+                <Trash2 className="h-3.5 w-3.5" /> Delete User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -144,80 +199,96 @@ export function UsersTable() {
         size: 50,
       },
     ],
-    [allSelected, allIds, selectedUsers, toggleUserSelection, selectAllUsers, setDetailsDrawerOpen]
+    [allSelected, allIds, selectedUsers, selectAllUsers, toggleUserSelection, setDetailsDrawerOpen]
   );
 
   const table = useReactTable({
-    data: filteredData,
+    data: users,
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
     state: { sorting },
-    initialState: { pagination: { pageSize: 8 } },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
   return (
-    <Card className="border border-border/40 shadow-xs hover:shadow-md transition-all rounded-2xl overflow-hidden bg-card">
-      <CardHeader className="pb-3 border-b border-border/30">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-bold tracking-tight flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            <span>Enterprise Users Directory</span>
-          </CardTitle>
-          {selectedUsers.size > 0 && (
-            <Badge variant="ghost" className="bg-primary/10 text-primary border-none text-xs font-semibold px-2.5 py-0.5 rounded-full">
-              {selectedUsers.size} Selected
-            </Badge>
-          )}
+    <Card className="border border-border/40 shadow-xs rounded-2xl overflow-hidden bg-card">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border/40 pb-4">
+        <div>
+          <CardTitle className="text-base font-bold tracking-tight">System User Directory</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Showing {users.length} of {total} registered system users
+          </p>
         </div>
       </CardHeader>
+
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              {table.getHeaderGroups().map((hg) => (
-                <TableRow key={hg.id} className="border-border/30 hover:bg-transparent">
-                  {hg.headers.map((header) => (
-                    <TableHead key={header.id} className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground h-10">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className={cn('border-border/20 hover:bg-muted/30 transition-colors cursor-pointer', selectedUsers.has(row.original.id) && 'bg-primary/5')} onClick={() => setDetailsDrawerOpen(true, row.original.id)}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3.5 px-4 align-middle" onClick={(e) => cell.column.id === 'select' || cell.column.id === 'actions' ? e.stopPropagation() : undefined}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-between px-5 py-3 border-t border-border/30 text-xs">
-          <span className="text-muted-foreground">
-            Showing <strong className="text-foreground font-semibold">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</strong> to{' '}
-            <strong className="text-foreground font-semibold">{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, filteredData.length)}</strong> of{' '}
-            <strong className="text-foreground font-semibold">{filteredData.length}</strong> users
+        {loading ? (
+          <div className="p-12 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-xs font-medium text-muted-foreground">Loading users directory...</p>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-muted/60 mx-auto flex items-center justify-center text-muted-foreground">
+              <Users className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">No users found</p>
+            <p className="text-xs text-muted-foreground">Try clearing your filters or creating a new user.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id} className="hover:bg-transparent border-border/40">
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className="text-xs font-bold text-muted-foreground">
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} className="hover:bg-muted/30 border-border/40 transition-colors">
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-3 text-xs">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Footer Pagination */}
+        <div className="flex items-center justify-between p-4 border-t border-border/40">
+          <span className="text-xs text-muted-foreground">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
           </span>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-lg border-border/60" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-              <ChevronLeft className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="h-8 rounded-lg text-xs"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Previous
             </Button>
-            {Array.from({ length: table.getPageCount() }, (_, i) => (
-              <Button key={i} variant={table.getState().pagination.pageIndex === i ? 'default' : 'ghost'} size="sm" className={cn('h-7 w-7 p-0 rounded-lg text-[10px] font-semibold', table.getState().pagination.pageIndex === i ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground')} onClick={() => table.setPageIndex(i)}>
-                {i + 1}
-              </Button>
-            ))}
-            <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-lg border-border/60" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-              <ChevronRight className="h-3.5 w-3.5" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="h-8 rounded-lg text-xs"
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </div>

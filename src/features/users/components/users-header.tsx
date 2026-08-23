@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useUsersStore } from '../store';
@@ -58,14 +59,15 @@ export function UsersHeader() {
           Refresh
         </Button>
 
-        <Button
-          size="sm"
-          className="h-9 px-4 rounded-full text-xs font-bold bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-          onClick={() => setNewUserDialogOpen(true)}
-        >
-          <UserPlus className="h-4 w-4 mr-1.5" />
-          New User
-        </Button>
+        <Link href="/users/new">
+          <Button
+            size="sm"
+            className="h-9 px-4 rounded-full text-xs font-bold bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            New User
+          </Button>
+        </Link>
       </div>
     </div>
   );

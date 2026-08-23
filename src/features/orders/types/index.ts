@@ -13,6 +13,7 @@ export interface OrderItem {
   productName: string;
   sku: string;
   quantity: number;
+  validatedQuantity?: number;
   unitPrice: number;
   total: number;
 }

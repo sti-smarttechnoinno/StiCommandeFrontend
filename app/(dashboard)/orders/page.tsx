@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,9 +22,11 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Tuesday, July 29, 2026');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -33,6 +36,7 @@ export default function OrdersPage() {
   const handleRefresh = () => {
     setIsRefreshing(true);
     toast.info('Refreshing orders data...');
+    setRefreshKey((prev) => prev + 1);
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
@@ -96,10 +100,10 @@ export default function OrdersPage() {
             <span>Refresh</span>
           </Button>
 
-          {/* New Order Primary Button */}
+          {/* New Order Primary Button (Navigates to /orders/new page) */}
           <Button
             size="sm"
-            onClick={() => toast.success('New Order Dialog')}
+            onClick={() => router.push('/orders/new')}
             className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="h-3.5 w-3.5 text-primary-foreground" />

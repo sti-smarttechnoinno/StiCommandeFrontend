@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -61,49 +61,66 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; style: string; dot: st
   },
 };
 
-const orders = generateOrders(20);
+import { ordersService, type OrderData } from '@/services/orders';
 
 export function OrdersTable() {
   const [search, setSearch] = useState('');
+  const [orders, setOrders] = useState<OrderData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebounce(search);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 800);
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await ordersService.list({ search: debouncedSearch, pageSize: 10 });
+      setOrders(res.data);
+    } catch {
+      // Fallback handling if any
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const columns = useMemo<ColumnDef<Order>[]>(
+  useEffect(() => {
+    fetchOrders();
+  }, [debouncedSearch, isRefreshing]);
+
+  const handleRefresh = () => {
+    setIsRefreshing((prev) => !prev);
+  };
+
+  const columns = useMemo<ColumnDef<OrderData>[]>(
     () => [
       {
-        accessorKey: 'orderNumber',
+        accessorKey: 'order_code',
         header: 'Order ID',
         cell: ({ row }) => (
           <span className="font-semibold font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded tracking-wider">
-            {row.original.orderNumber}
+            {row.original.order_code}
           </span>
         ),
       },
       {
-        accessorKey: 'clientName',
+        accessorKey: 'client_name',
         header: 'Client',
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-foreground flex-shrink-0">
-              {row.original.clientName.charAt(0)}
+              {row.original.client_name ? row.original.client_name.charAt(0) : 'C'}
             </div>
             <span className="font-medium text-foreground text-xs leading-tight">
-              {row.original.clientName}
+              {row.original.client_name}
             </span>
           </div>
         ),
       },
       {
-        accessorKey: 'delegateName',
+        accessorKey: 'delegate_name',
         header: 'Delegate',
         cell: ({ row }) => (
           <span className="text-xs font-medium text-foreground">
-            {row.original.delegateName}
+            {row.original.delegate_name || 'Unassigned'}
           </span>
         ),
       },
@@ -117,20 +134,20 @@ export function OrdersTable() {
         ),
       },
       {
-        accessorKey: 'products',
+        accessorKey: 'items',
         header: 'Items',
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground">
-            {row.original.products.length} {row.original.products.length === 1 ? 'item' : 'items'}
+            {row.original.items ? row.original.items.length : 1} {row.original.items && row.original.items.length === 1 ? 'item' : 'items'}
           </span>
         ),
       },
       {
-        accessorKey: 'totalAmount',
+        accessorKey: 'total_amount',
         header: 'Total Amount',
         cell: ({ row }) => (
           <span className="font-bold text-xs text-foreground tracking-tight">
-            {row.original.totalAmount.toLocaleString('en-US')} DA
+            {new Intl.NumberFormat('en-US').format(row.original.total_amount)} DA
           </span>
         ),
       },
@@ -138,7 +155,7 @@ export function OrdersTable() {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => {
-          const cfg = STATUS_CONFIG[row.original.status];
+          const cfg = STATUS_CONFIG[row.original.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
           return (
             <Badge variant="ghost" className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1.5 w-fit border-none', cfg.style)}>
               <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />
@@ -148,11 +165,11 @@ export function OrdersTable() {
         },
       },
       {
-        accessorKey: 'createdAt',
+        accessorKey: 'created_at',
         header: 'Date',
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground">
-            {format(new Date(row.original.createdAt), 'MMM dd, HH:mm')}
+            {row.original.created_at ? format(new Date(row.original.created_at), 'MMM dd, HH:mm') : '-'}
           </span>
         ),
       },
@@ -187,20 +204,8 @@ export function OrdersTable() {
     []
   );
 
-  const filteredData = useMemo(
-    () =>
-      orders.filter(
-        (o) =>
-          o.orderNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          o.clientName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          o.delegateName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          o.region.toLowerCase().includes(debouncedSearch.toLowerCase())
-      ),
-    [debouncedSearch]
-  );
-
   const table = useReactTable({
-    data: filteredData,
+    data: orders,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -219,7 +224,7 @@ export function OrdersTable() {
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-bold tracking-tight">Recent Orders</CardTitle>
               <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2 py-0.5">
-                {filteredData.length} Total
+                {orders.length} Total
               </Badge>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-0.5">

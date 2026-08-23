@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, Fragment } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -39,18 +39,119 @@ import {
   Printer,
   Trash2,
   ShoppingBag,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useWebSocketOrders } from '@/hooks/use-websocket-orders';
 import type { ExtendedOrder, SortField } from '../types';
+import { ordersService, type OrderData } from '@/services/orders';
 
 export function OrdersTable() {
   const { filters, selectedIds, expandedIds, sort, page, pageSize, toggleSelect, selectAll, clearSelection, toggleExpand, setSort, setPage, setPageSize } = useOrdersStore();
 
+  const [dbOrders, setDbOrders] = useState<ExtendedOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    ordersService
+      .list({ pageSize: 100 })
+      .then((res) => {
+        if (active && res.data) {
+          const mapped: ExtendedOrder[] = res.data.map((o: any) => ({
+            id: o.id,
+            orderNumber: o.order_code || o.orderNumber || '',
+            clientId: o.client_id || '',
+            clientName: o.client_name || o.clientName || 'Client',
+            delegateId: o.delegate_id || '',
+            delegateName: (o.delegate_name && o.delegate_name.toLowerCase() !== 'unassigned')
+              ? o.delegate_name
+              : (o.delegate?.name || o.delegateName || 'Délégué Commercial'),
+            region: o.region || '',
+            wilaya: o.wilaya || '',
+            totalAmount: Number(o.total_amount || o.totalAmount) || 0,
+            status: (o.status as any) || 'pending',
+            paymentMethod: 'cash',
+            priority: 'normal',
+            products: (o.items || []).length,
+            createdAt: o.created_at || o.createdAt || new Date().toISOString(),
+            updatedAt: o.updated_at || o.updatedAt || new Date().toISOString(),
+            items: (o.items || []).map((item: any) => ({
+              id: item.id || String(Math.random()),
+              productId: item.product_id || item.productId || '',
+              productName: item.product_name || item.productName || 'Produit',
+              sku: item.reference || item.sku || 'SKU',
+              quantity: item.quantity || 1,
+              validatedQuantity: item.validated_quantity ?? item.validatedQuantity ?? item.quantity ?? 1,
+              unitPrice: Number(item.unit_price || item.unitPrice) || 0,
+              totalPrice: Number(item.subtotal || item.totalPrice) || (Number(item.unit_price || item.unitPrice) * (item.quantity || 1)) || 0,
+            })),
+          }));
+          setDbOrders(mapped);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const { lastEvent } = useWebSocketOrders();
+
+  useEffect(() => {
+    if (lastEvent?.type === 'ORDER_CREATED' && lastEvent.order) {
+      const o: any = lastEvent.order;
+      const newOrder: ExtendedOrder = {
+        id: o.id || String(Math.random()),
+        orderNumber: o.order_code || o.orderNumber || '',
+        clientId: o.client_id || '',
+        clientName: o.client_name || o.clientName || 'Client',
+        delegateId: o.delegate_id || '',
+        delegateName: (o.delegate_name && o.delegate_name.toLowerCase() !== 'unassigned')
+          ? o.delegate_name
+          : (o.delegate?.name || o.delegateName || 'Délégué Commercial'),
+        region: o.region || '',
+        wilaya: o.wilaya || '',
+        totalAmount: Number(o.total_amount || o.totalAmount) || 0,
+        status: (o.status as any) || 'pending',
+        paymentMethod: 'cash',
+        priority: 'normal',
+        products: (o.items || []).length,
+        createdAt: o.created_at || o.createdAt || new Date().toISOString(),
+        updatedAt: o.updated_at || o.updatedAt || new Date().toISOString(),
+        items: (o.items || []).map((item: any) => ({
+          id: item.id || String(Math.random()),
+          productId: item.product_id || item.productId || '',
+          productName: item.product_name || item.productName || 'Produit',
+          sku: item.reference || item.sku || 'SKU',
+          quantity: item.quantity || 1,
+          validatedQuantity: item.validated_quantity ?? item.validatedQuantity ?? item.quantity ?? 1,
+          unitPrice: Number(item.unit_price || item.unitPrice) || 0,
+          totalPrice: Number(item.subtotal || item.totalPrice) || (Number(item.unit_price || item.unitPrice) * (item.quantity || 1)) || 0,
+        })),
+      };
+
+      setDbOrders((prev) => {
+        if (prev.some((existing) => existing.id === newOrder.id || (newOrder.orderNumber && existing.orderNumber === newOrder.orderNumber))) {
+          return prev;
+        }
+        return [newOrder, ...prev];
+      });
+    }
+  }, [lastEvent]);
+
+  const allOrdersList = useMemo(() => {
+    return dbOrders;
+  }, [dbOrders]);
+
   const processedData = useMemo(() => {
-    const filtered = filterOrders(mockOrders, filters);
+    const filtered = filterOrders(allOrdersList, filters);
     const sorted = sortOrders(filtered, sort.field, sort.direction);
     return sorted;
-  }, [filters, sort]);
+  }, [allOrdersList, filters, sort]);
 
   const pageCount = Math.ceil(processedData.length / pageSize);
   const paginatedData = useMemo(() => {
@@ -128,14 +229,31 @@ export function OrdersTable() {
             )}
           </button>
         ),
-        cell: ({ row }) => (
-          <button
-            className="font-bold font-mono text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-md transition-colors"
-            onClick={() => toggleExpand(row.original.id)}
-          >
-            {row.original.orderNumber}
-          </button>
-        ),
+        cell: ({ row }) => {
+          const isExpanded = expandedIds.has(row.original.id);
+          return (
+            <button
+              type="button"
+              className={cn(
+                "font-bold font-mono text-xs px-2.5 py-1 rounded-md transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs",
+                isExpanded
+                  ? "bg-primary text-primary-foreground"
+                  : "text-primary bg-primary/10 hover:bg-primary/20"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpand(row.original.id);
+              }}
+            >
+              <span>{row.original.orderNumber}</span>
+              {isExpanded ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3 opacity-70" />
+              )}
+            </button>
+          );
+        },
         size: 110,
       },
       {
@@ -168,8 +286,24 @@ export function OrdersTable() {
       {
         accessorKey: 'delegateName',
         header: 'Delegate',
-        cell: ({ row }) => <span className="text-xs font-medium text-foreground">{row.original.delegateName}</span>,
-        size: 120,
+        cell: ({ row }) => {
+          const delegateName =
+            row.original.delegateName && row.original.delegateName.toLowerCase() !== 'unassigned'
+              ? row.original.delegateName
+              : 'Délégué Commercial';
+
+          return (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-blue-500/10 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                {delegateName.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-xs font-semibold text-foreground">
+                {delegateName}
+              </span>
+            </div>
+          );
+        },
+        size: 140,
       },
       {
         accessorKey: 'region',
@@ -192,24 +326,17 @@ export function OrdersTable() {
         size: 80,
       },
       {
-        accessorKey: 'totalAmount',
-        header: () => (
-          <button
-            className="flex items-center gap-1 hover:text-foreground transition-colors font-bold"
-            onClick={() => handleSort('totalAmount')}
-          >
-            Amount
-            {sort.field === 'totalAmount' ? (
-              sort.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ArrowUpDown className="h-3 w-3 opacity-40" />
-            )}
-          </button>
-        ),
-        cell: ({ row }) => (
-          <span className="font-bold text-xs text-foreground tracking-tight">{formatCurrency(row.original.totalAmount)}</span>
-        ),
-        size: 110,
+        accessorKey: 'quantity',
+        header: 'Quantity',
+        cell: ({ row }) => {
+          const totalQty = (row.original.items || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+          return (
+            <span className="font-bold text-xs text-foreground tracking-tight">
+              {totalQty}
+            </span>
+          );
+        },
+        size: 100,
       },
       {
         accessorKey: 'status',
@@ -308,8 +435,9 @@ export function OrdersTable() {
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold tracking-tight">Orders List</CardTitle>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2.5 py-0.5">
-                  {processedData.length} Orders
+                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2.5 py-0.5 gap-1.5 flex items-center">
+                  {loading && <Loader2 className="h-3 w-3 text-primary animate-spin" />}
+                  <span>{processedData.length} Orders</span>
                 </Badge>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
@@ -371,22 +499,83 @@ export function OrdersTable() {
             </TableHeader>
 
             <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className={cn(
-                      'hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0',
-                      selectedIds.has(row.original.id) && 'bg-primary/5'
-                    )}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-3.5 px-4 align-middle">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2.5 py-8">
+                      <div className="p-3 rounded-full bg-primary/10 text-primary">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-foreground">Fetching orders directory...</p>
+                        <p className="text-[11px] text-muted-foreground">Loading order transactions and distribution records</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map((row) => {
+                  const isExpanded = expandedIds.has(row.original.id);
+                  const isSelected = selectedIds.has(row.original.id);
+
+                  return (
+                    <Fragment key={row.id}>
+                      <TableRow
+                        className={cn(
+                          'hover:bg-muted/40 transition-colors border-b border-border/30 cursor-pointer',
+                          isSelected && 'bg-primary/5',
+                          isExpanded && 'bg-muted/30 border-b-0'
+                        )}
+                        onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (
+                            target.closest('button') ||
+                            target.closest('input') ||
+                            target.closest('[role="checkbox"]')
+                          ) {
+                            return;
+                          }
+                          toggleExpand(row.original.id);
+                        }}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className="py-3.5 px-4 align-middle">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+
+                      {isExpanded && (
+                        <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-border/30">
+                          <TableCell colSpan={columns.length} className="p-0">
+                            <OrderExpandedRow
+                              order={row.original}
+                              onUpdateStatus={(orderId, newStatus, validatedItems) => {
+                                setDbOrders((prev) =>
+                                  prev.map((o) =>
+                                    o.id === orderId
+                                      ? {
+                                          ...o,
+                                          status: newStatus as any,
+                                          items: validatedItems
+                                            ? o.items.map((item) => ({
+                                                ...item,
+                                                validatedQuantity: validatedItems[item.id] ?? item.validatedQuantity ?? item.quantity,
+                                                total: (validatedItems[item.id] ?? item.validatedQuantity ?? item.quantity) * item.unitPrice,
+                                              }))
+                                            : o.items,
+                                        }
+                                      : o
+                                  )
+                                );
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-28 text-center text-muted-foreground text-xs">
@@ -397,13 +586,6 @@ export function OrdersTable() {
             </TableBody>
           </Table>
         </div>
-
-        {/* Expanded Rows */}
-        {table.getRowModel().rows.map((row) =>
-          expandedIds.has(row.original.id) ? (
-            <OrderExpandedRow key={`expanded-${row.id}`} order={row.original} />
-          ) : null
-        )}
 
         {/* Pagination Footer */}
         <div className="flex items-center justify-between px-4 py-3.5 border-t border-border/30 text-xs">

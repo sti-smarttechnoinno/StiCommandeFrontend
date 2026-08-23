@@ -1,42 +1,69 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Check, X, Clock, ShieldCheck, CheckCheck, MapPin } from 'lucide-react';
+import { Check, X, ShieldCheck, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ordersService, type OrderData } from '@/services/orders';
 
-const initialOrders = [
-  { id: 'ORD-2026-0891', client: 'Telecom Plus DZ', region: 'Algiers', amount: 125000, time: '10 min ago', priority: 'high' as const },
-  { id: 'ORD-2026-0889', client: 'Oran Digital Shop', region: 'Oran', amount: 87500, time: '25 min ago', priority: 'normal' as const },
-  { id: 'ORD-2026-0887', client: 'Batna Mobile Center', region: 'Batna', amount: 45000, time: '1h ago', priority: 'urgent' as const },
-  { id: 'ORD-2026-0885', client: 'Sétif Wireless', region: 'Sétif', amount: 210000, time: '2h ago', priority: 'high' as const },
-];
-
-const PRIORITY_BADGES = {
-  normal: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  high: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  urgent: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold',
-};
+interface PendingOrderItem {
+  id: string;
+  orderCode: string;
+  client: string;
+  region: string;
+  amount: number;
+  time: string;
+}
 
 export function ApprovalQueue() {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState<PendingOrderItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleApprove = (id: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== id));
-    toast.success(`Order ${id} approved successfully`);
+  const fetchPendingOrders = () => {
+    ordersService
+      .list({ status: 'pending', pageSize: 10 })
+      .then((res) => {
+        if (res.data) {
+          const mapped: PendingOrderItem[] = res.data.map((o: OrderData) => ({
+            id: o.id,
+            orderCode: o.order_code,
+            client: o.client_name,
+            region: o.region,
+            amount: Number(o.total_amount) || 0,
+            time: 'En attente',
+          }));
+          setOrders(mapped);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
-  const handleReject = (id: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== id));
-    toast.error(`Order ${id} rejected`);
+  useEffect(() => {
+    fetchPendingOrders();
+  }, []);
+
+  const handleApprove = async (id: string, code: string) => {
+    try {
+      await ordersService.updateStatus(id, 'validated');
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+      toast.success(`Commande ${code} validée avec succès`);
+    } catch {
+      toast.error(`Échec de la validation de la commande ${code}`);
+    }
   };
 
-  const handleApproveAll = () => {
-    setOrders([]);
-    toast.success('All pending orders approved');
+  const handleReject = async (id: string, code: string) => {
+    try {
+      await ordersService.updateStatus(id, 'cancelled');
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+      toast.error(`Commande ${code} annulée`);
+    } catch {
+      toast.error(`Échec de l'annulation de la commande ${code}`);
+    }
   };
 
   return (
@@ -54,108 +81,67 @@ export function ApprovalQueue() {
               </Badge>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-0.5">
-              High-value orders requiring admin sign-off
+              Commandes en attente de validation administrateur
             </CardDescription>
           </div>
         </div>
-
-        {orders.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleApproveAll}
-            className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 gap-1 px-2.5 h-8 rounded-lg"
-          >
-            <CheckCheck className="h-3.5 w-3.5" />
-            <span>Approve All</span>
-          </Button>
-        )}
       </CardHeader>
 
-      <CardContent className="p-3 flex-1 flex flex-col justify-between space-y-3">
+      <CardContent className="px-6 py-2 flex-1 flex flex-col justify-between">
         {orders.length > 0 ? (
-          <div className="space-y-2.5 flex-1">
+          <div className="space-y-3">
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="group flex flex-col gap-2 p-3 rounded-xl bg-muted/20 border border-border/30 hover:bg-muted/40 transition-colors"
+                className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted/70 transition-colors"
               >
-                {/* Top Row: Client & Priority */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {order.client.charAt(0)}
-                    </div>
-                    <div className="min-w-0">
-                      <span className="block text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate leading-tight">
-                        {order.client}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <MapPin className="h-2.5 w-2.5 text-muted-foreground/70" />
-                        {order.region}
-                      </span>
-                    </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                      {order.orderCode}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-amber-500" />
+                      {order.region}
+                    </span>
                   </div>
-
-                  <Badge variant="ghost" className={cn('px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase border-none flex-shrink-0', PRIORITY_BADGES[order.priority])}>
-                    {order.priority}
-                  </Badge>
+                  <h4 className="text-xs font-bold text-foreground truncate">{order.client}</h4>
+                  <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {order.amount.toLocaleString('fr-FR')} DA
+                  </p>
                 </div>
 
-                {/* Bottom Row: ID, Time, Amount & Actions */}
-                <div className="flex items-center justify-between pt-1 border-t border-border/20 mt-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                      {order.id}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Clock className="h-2.5 w-2.5" />
-                      {order.time}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-foreground">
-                      {order.amount.toLocaleString()} DA
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        className="h-7 px-2.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs gap-1"
-                        onClick={() => handleApprove(order.id)}
-                      >
-                        <Check className="h-3 w-3" /> Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 px-2 text-xs font-semibold rounded-lg text-rose-600 hover:bg-rose-500/10"
-                        onClick={() => handleReject(order.id)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReject(order.id, order.orderCode)}
+                    className="h-8 w-8 p-0 rounded-lg text-rose-600 border-rose-500/30 hover:bg-rose-500/10"
+                    title="Reject Order"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleApprove(order.id, order.orderCode)}
+                    className="h-8 px-2.5 rounded-lg text-xs font-semibold gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    title="Approve Order"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Valider</span>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center py-8 text-center space-y-2">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <CheckCheck className="h-5 w-5" />
-            </div>
-            <p className="text-xs font-semibold text-foreground">Queue Clear!</p>
-            <p className="text-[11px] text-muted-foreground">All pending orders have been processed.</p>
+          <div className="py-8 text-center space-y-2 my-auto">
+            <ShieldCheck className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+            <p className="text-xs font-semibold text-muted-foreground">Aucune commande en attente de validation</p>
           </div>
         )}
-
-        {/* Card Footer Note */}
-        <div className="pt-2 border-t border-border/30 flex items-center justify-between text-[11px] text-muted-foreground px-1">
-          <span>Admin Authorization Required</span>
-          <span className="font-semibold text-foreground font-mono">100% Operational</span>
-        </div>
       </CardContent>
     </Card>
   );

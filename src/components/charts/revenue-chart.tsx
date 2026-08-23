@@ -1,34 +1,19 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDashboardStore } from '@/store';
-import { TrendingUp, DollarSign, ShoppingBag } from 'lucide-react';
+import { reportsService, type RevenueOverviewData } from '@/services/reports';
+import { TrendingUp, DollarSign } from 'lucide-react';
 
 const DATA_RANGES = {
-  '7': 7,
-  '30': 30,
-  '90': 90,
-  '365': 365,
+  '7': '7d',
+  '30': '30d',
+  '90': '90d',
+  '365': '1y',
 } as const;
-
-function generateData(days: number) {
-  return Array.from({ length: days }, (_, i) => {
-    const date = new Date(2026, 6, 29 - (days - 1 - i));
-    const sineOffset = Math.sin(i * 0.5) * 40;
-    const cosOffset = Math.cos(i * 0.3) * 15;
-    const revenue = Math.floor(220 + i * (180 / days) + sineOffset);
-    const orders = Math.floor(45 + i * (60 / days) + cosOffset);
-
-    return {
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      revenue: Math.max(100, revenue) * 1000,
-      orders: Math.max(15, orders),
-    };
-  });
-}
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -54,10 +39,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function RevenueChart() {
   const { dateRange, setDateRange } = useDashboardStore();
-  const data = useMemo(() => generateData(DATA_RANGES[dateRange]), [dateRange]);
+  const [data, setData] = useState<RevenueOverviewData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalRevenue = useMemo(() => data.reduce((acc, curr) => acc + curr.revenue, 0), [data]);
-  const totalOrders = useMemo(() => data.reduce((acc, curr) => acc + curr.orders, 0), [data]);
+  const rangeKey = DATA_RANGES[dateRange as keyof typeof DATA_RANGES] || '30d';
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    reportsService
+      .getRevenueOverview(rangeKey)
+      .then((res) => {
+        if (isMounted) {
+          setData(res);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [rangeKey]);
+
+  const totalRevenue = useMemo(() => data.reduce((acc, curr) => acc + (curr.revenue || 0), 0), [data]);
+  const totalOrders = useMemo(() => data.reduce((acc, curr) => acc + (curr.orders || 0), 0), [data]);
 
   return (
     <Card className="col-span-1 lg:col-span-2 border border-border/40 shadow-xs rounded-2xl overflow-hidden">
@@ -108,7 +116,7 @@ export function RevenueChart() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(156, 163, 175, 0.1)" vertical={false} />
             <XAxis
-              dataKey="date"
+              dataKey="month"
               tick={{ fontSize: 11, fill: '#9CA3AF' }}
               tickLine={false}
               axisLine={false}

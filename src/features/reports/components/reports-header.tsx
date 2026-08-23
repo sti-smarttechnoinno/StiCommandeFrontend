@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useReportsStore } from '../store';
@@ -8,15 +9,25 @@ import {
   Plus,
   CalendarClock,
   Calendar,
+  RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export function ReportsHeader() {
-  const { setCreateDialogOpen } = useReportsStore();
+  const { setCreateDialogOpen, triggerRefresh } = useReportsStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    triggerRefresh();
+    toast.info('Refreshing report analytics...');
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
           <span>Home</span>
@@ -32,24 +43,24 @@ export function ReportsHeader() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2.5 flex-wrap">
         <Button
           variant="outline"
           size="sm"
           className="h-9 px-3.5 rounded-full border-border/70 text-xs font-semibold bg-card hover:bg-muted/80"
-          onClick={() => toast.success('Schedule manager opened')}
+          onClick={handleRefresh}
         >
-          <CalendarClock className="h-3.5 w-3.5 mr-1.5" />
-          Schedule Report
+          <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5 text-amber-500 transition-transform duration-700", isRefreshing && "animate-spin")} />
+          Refresh
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           className="h-9 px-3.5 rounded-full border-border/70 text-xs font-semibold bg-card hover:bg-muted/80"
-          onClick={() => toast.success('Reports exported')}
+          onClick={() => toast.success('Reports summary exported')}
         >
-          <FileDown className="h-3.5 w-3.5 mr-1.5" />
+          <FileDown className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
           Export
         </Button>
 

@@ -1,13 +1,16 @@
 import type { Product, ProductCategory } from '@/types';
 
-export type ProductStatus = 'active' | 'low_stock' | 'draft' | 'out_of_stock';
+export type ProductStatus = 'active' | 'inactive' | 'draft' | 'low_stock' | 'out_of_stock';
 export type StockFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 export type ViewMode = 'table' | 'grid';
 export type SortField = 'name' | 'sku' | 'category' | 'price' | 'stock' | 'status' | 'createdAt';
 export type SortDirection = 'asc' | 'desc';
 
 export interface ExtendedProduct extends Product {
+  nominalPrice: number;
   faceValue: number;
+  discountPercent: number;
+  discountAmount: number;
   sellingPrice: number;
   margin: number;
   profit: number;

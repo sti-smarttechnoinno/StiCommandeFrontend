@@ -36,6 +36,8 @@ export interface NotificationsState {
   isDetailsDrawerOpen: boolean;
   isAnnouncementDialogOpen: boolean;
   selectedNotificationId: string | null;
+  refreshKey: number;
+  triggerRefresh: () => void;
   setSearchQuery: (q: string) => void;
   setSelectedCategory: (c: string) => void;
   setSelectedPriority: (p: string) => void;

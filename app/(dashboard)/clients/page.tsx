@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -16,19 +17,29 @@ import { AnalyticsPanel } from '@/features/clients/components/analytics-panel';
 import { Plus, Download, RefreshCw, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useWebSocketOrders } from '@/hooks/use-websocket-orders';
 
 export default function ClientsPage() {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Friday, July 31, 2026');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isConnected, lastEvent } = useWebSocketOrders();
+  const [tableKey, setTableKey] = useState<number>(0);
 
   useEffect(() => {
     setMounted(true);
     setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
   }, []);
 
+  useEffect(() => {
+    if (lastEvent?.type === 'ORDER_CREATED') {
+      setTableKey((prev) => prev + 1);
+    }
+  }, [lastEvent]);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
+    setTableKey((prev) => prev + 1);
     toast.info('Refreshing clients data...');
     setTimeout(() => setIsRefreshing(false), 800);
   };
@@ -94,23 +105,24 @@ export default function ClientsPage() {
           </Button>
 
           {/* New Client Primary Button */}
-          <Button
-            size="sm"
-            onClick={() => toast.success('New Client Dialog')}
-            className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus className="h-3.5 w-3.5 text-primary-foreground" />
-            <span>New Client</span>
-          </Button>
+          <Link href="/clients/new">
+            <Button
+              size="sm"
+              className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+              <span>New Client</span>
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <KPICards />
+      <KPICards key={`kpi-${tableKey}`} />
 
       {/* Full Width Combined Filter & Table Component */}
       <div className="w-full">
-        <ClientsTable />
+        <ClientsTable key={`table-${tableKey}`} />
       </div>
 
       {/* Bottom Section: Operations & Analytics Summary (3 Column Grid Full Width) */}

@@ -1,10 +1,9 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
@@ -23,12 +22,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useWilayasStore } from '../store';
-import { filterWilayas, sortWilayas, formatCurrency, getPerformanceColor, getPerformanceLabel, getStatusColor, getStatusDot, getStatusLabel, getRegionColor } from '../utils';
-import { mockWilayas } from '../mock-data';
+import { formatCurrency, getPerformanceColor, getPerformanceLabel, getStatusColor, getStatusDot, getStatusLabel } from '../utils';
+import { wilayasService } from '@/services/wilayas';
 import { WilayaFilters } from './wilaya-filters';
 import {
   MapPin, ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-  Eye, Pencil, Trash2, MoreHorizontal, TrendingUp, TrendingDown,
+  Eye, Pencil, Trash2, MoreHorizontal, TrendingUp, TrendingDown, Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,21 +41,44 @@ import type { WilayaRow, SortField } from '../types';
 
 interface WilayasTableProps {
   onViewWilaya: (id: string) => void;
+  refreshTrigger?: number;
 }
 
-export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
+export function WilayasTable({ onViewWilaya, refreshTrigger = 0 }: WilayasTableProps) {
   const { filters, selectedIds, sort, page, pageSize, toggleSelect, selectAll, clearSelection, setSort, setPage, setPageSize } = useWilayasStore();
 
-  const processedData = useMemo(() => {
-    const filtered = filterWilayas(mockWilayas, filters);
-    return sortWilayas(filtered, sort.field, sort.direction);
-  }, [filters, sort]);
+  const [data, setData] = useState<WilayaRow[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const pageCount = Math.ceil(processedData.length / pageSize);
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return processedData.slice(start, start + pageSize);
-  }, [processedData, page, pageSize]);
+  const fetchWilayas = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await wilayasService.list({
+        search: filters.search,
+        region: filters.region,
+        status: filters.status,
+        revenueRange: filters.revenueRange,
+        growth: filters.growth,
+        sortField: sort.field,
+        sortDirection: sort.direction,
+        page,
+        pageSize,
+      });
+      setData(res.data);
+      setTotalCount(res.total);
+      setTotalPages(res.totalPages);
+    } catch (err) {
+      toast.error('Failed to load wilayas data');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, sort, page, pageSize]);
+
+  useEffect(() => {
+    fetchWilayas();
+  }, [fetchWilayas, refreshTrigger]);
 
   const handleSort = useCallback(
     (field: SortField) => {
@@ -69,7 +91,20 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
     [sort, setSort]
   );
 
-  const allPageIds = useMemo(() => paginatedData.map((w) => w.id), [paginatedData]);
+  const handleSingleDelete = useCallback(
+    async (id: string, name: string) => {
+      try {
+        await wilayasService.delete(id);
+        toast.success(`Deleted ${name}`);
+        fetchWilayas();
+      } catch {
+        toast.error(`Failed to delete ${name}`);
+      }
+    },
+    [fetchWilayas]
+  );
+
+  const allPageIds = useMemo(() => data.map((w) => w.id), [data]);
   const allSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.has(id));
   const someSelected = allPageIds.some((id) => selectedIds.has(id)) && !allSelected;
 
@@ -315,11 +350,11 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
                 <DropdownMenuItem onClick={() => onViewWilaya(row.original.id)}>
                   <Eye className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> View Performance
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info(`Edit ${row.original.name}`)}>
+                <DropdownMenuItem onClick={() => toast.info(`Editing ${row.original.name}`)}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Edit Wilaya
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => toast.error(`Deleted ${row.original.name}`)}>
+                <DropdownMenuItem className="text-destructive" onClick={() => handleSingleDelete(row.original.id, row.original.name)}>
                   <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Wilaya
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -331,22 +366,16 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
         enableHiding: false,
       },
     ],
-    [sort, handleSort, selectedIds, allPageIds, allSelected, someSelected, handleSelectAllPage, toggleSelect, onViewWilaya]
+    [sort, handleSort, selectedIds, allPageIds, allSelected, someSelected, handleSelectAllPage, toggleSelect, onViewWilaya, handleSingleDelete]
   );
 
   const table = useReactTable({
-    data: paginatedData,
+    data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    pageCount,
+    pageCount: totalPages,
     state: {
       pagination: { pageIndex: page, pageSize },
-    },
-    onPaginationChange: (updater) => {
-      const newPagination = typeof updater === 'function' ? updater({ pageIndex: page, pageSize }) : updater;
-      setPage(newPagination.pageIndex);
-      if (newPagination.pageSize !== pageSize) setPageSize(newPagination.pageSize);
     },
     manualPagination: true,
   });
@@ -364,11 +393,11 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold tracking-tight">Wilayas Performance Directory</CardTitle>
                 <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2 py-0.5">
-                  {processedData.length} Wilayas
+                  {totalCount} Wilayas
                 </Badge>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Search, filter, and manage sales performance across all 58 Wilayas
+                Search, filter, and manage sales performance across Algerian Wilayas
               </CardDescription>
             </div>
           </div>
@@ -381,7 +410,12 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative min-h-[250px]">
+          {loading && (
+            <div className="absolute inset-0 bg-card/60 backdrop-blur-xs flex items-center justify-center z-20">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
           <Table>
             <TableHeader className="bg-muted/30">
               {table.getHeaderGroups().map((hg) => (
@@ -432,13 +466,13 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
           <span className="text-muted-foreground">
             Showing{' '}
             <strong className="text-foreground font-semibold">
-              {page * pageSize + 1}
+              {totalCount > 0 ? page * pageSize + 1 : 0}
             </strong>{' '}
             to{' '}
             <strong className="text-foreground font-semibold">
-              {Math.min((page + 1) * pageSize, processedData.length)}
+              {Math.min((page + 1) * pageSize, totalCount)}
             </strong>{' '}
-            of <strong className="text-foreground font-semibold">{processedData.length}</strong> wilayas
+            of <strong className="text-foreground font-semibold">{totalCount}</strong> wilayas
           </span>
 
           <div className="flex items-center gap-1">
@@ -446,21 +480,21 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
               variant="ghost"
               size="sm"
               className="h-8 px-2.5 rounded-lg text-xs font-medium gap-1"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0 || loading}
             >
               <ChevronLeft className="h-3.5 w-3.5" /> Prev
             </Button>
 
             <div className="flex items-center gap-1 mx-1">
-              {Array.from({ length: Math.min(pageCount, 5) }, (_, i) => {
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 let pageNum: number;
-                if (pageCount <= 5) {
+                if (totalPages <= 5) {
                   pageNum = i;
                 } else if (page < 3) {
                   pageNum = i;
-                } else if (page >= pageCount - 3) {
-                  pageNum = pageCount - 5 + i;
+                } else if (page >= totalPages - 3) {
+                  pageNum = totalPages - 5 + i;
                 } else {
                   pageNum = page - 2 + i;
                 }
@@ -476,6 +510,7 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                     onClick={() => setPage(pageNum)}
+                    disabled={loading}
                   >
                     {pageNum + 1}
                   </Button>
@@ -487,8 +522,8 @@ export function WilayasTable({ onViewWilaya }: WilayasTableProps) {
               variant="ghost"
               size="sm"
               className="h-8 px-2.5 rounded-lg text-xs font-medium gap-1"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => setPage(page + 1)}
+              disabled={page >= totalPages - 1 || loading}
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
             </Button>

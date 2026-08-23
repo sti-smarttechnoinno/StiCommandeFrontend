@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,6 +31,7 @@ const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginCard = memo(function LoginCard() {
+  const router = useRouter();
   const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -54,28 +56,21 @@ export const LoginCard = memo(function LoginCard() {
       setErrorMessage(null);
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-
-        const user = {
-          id: 'usr-001',
-          name: data.username.replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          email: `${data.username}@eststar.dz`,
-          role: 'admin',
-          avatar: data.username.charAt(0).toUpperCase(),
-        };
-
-        login(user, 'demo-access-token', 'demo-refresh-token');
+        const email = `${data.username}@eststar.dz`;
+        await login(email, data.password);
 
         setIsSuccess(true);
         toast.success('Authentication successful', {
-          description: `Welcome back, ${user.name}`,
+          description: `Welcome back, ${data.username}`,
         });
 
         setTimeout(() => {
-          window.location.href = '/dashboard';
+          router.push('/dashboard');
         }, 600);
-      } catch (err) {
-        setErrorMessage('Invalid username or password. Please try again.');
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : 'Invalid username or password. Please try again.';
+        setErrorMessage(message);
         toast.error('Authentication failed', {
           description: 'Please check your credentials and try again.',
         });

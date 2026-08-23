@@ -15,6 +15,8 @@ export const useNotificationsStore = create<NotificationsState>((set) => ({
   isDetailsDrawerOpen: false,
   isAnnouncementDialogOpen: false,
   selectedNotificationId: null,
+  refreshKey: 0,
+  triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectedCategory: (selectedCategory) => set({ selectedCategory }),

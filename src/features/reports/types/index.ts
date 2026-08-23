@@ -84,6 +84,7 @@ export interface ReportsState {
   selectedReportType: string;
   selectedStatus: string;
   isCreateDialogOpen: boolean;
+  refreshKey: number;
   setDateRange: (range: DateRange) => void;
   setSearchQuery: (query: string) => void;
   setSelectedRegion: (region: string) => void;
@@ -94,5 +95,6 @@ export interface ReportsState {
   setSelectedReportType: (type: string) => void;
   setSelectedStatus: (status: string) => void;
   setCreateDialogOpen: (open: boolean) => void;
+  triggerRefresh: () => void;
   resetFilters: () => void;
 }

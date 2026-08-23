@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,42 +11,33 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useWilayasStore } from '@/features/wilayas/store';
-import { filterWilayas } from '@/features/wilayas/utils';
-import { mockWilayas } from '@/features/wilayas/mock-data';
 import { KPICards } from '@/features/wilayas/components/kpi-cards';
 import { WilayasTable } from '@/features/wilayas/components/wilayas-table';
 import { AnalyticsPanel } from '@/features/wilayas/components/analytics-panel';
 import { WilayaDrawer } from '@/features/wilayas/components/wilaya-drawer';
-import { WilayasLoadingSkeleton } from '@/features/wilayas/components/loading-skeleton';
-import { WilayasEmptyState, WilayasErrorState } from '@/features/wilayas/components/error-states';
 import { Plus, Download, RefreshCw, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function WilayasPage() {
-  const { filters, selectedWilaya, setSelectedWilaya } = useWilayasStore();
+  const { selectedWilaya, setSelectedWilaya } = useWilayasStore();
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Friday, July 31, 2026');
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     setMounted(true);
     setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
   }, []);
 
-  const filteredWilayas = useMemo(() => filterWilayas(mockWilayas, filters), [filters]);
-
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    setIsLoading(true);
-    setHasError(false);
+    setRefreshTrigger((prev) => prev + 1);
+    toast.info('Refreshing wilayas data from backend...');
     setTimeout(() => {
-      setIsLoading(false);
       setIsRefreshing(false);
-      toast.success('Wilayas refreshed');
-    }, 800);
+    }, 600);
   }, []);
 
   const handleViewWilaya = useCallback(
@@ -57,37 +48,6 @@ export default function WilayasPage() {
   );
 
   if (!mounted) return null;
-
-  if (hasError) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Wilayas Performance</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Analyze performance across all Algerian wilayas</p>
-          </div>
-          <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-semibold gap-1.5" onClick={handleRefresh}>
-            <RefreshCw className="h-3.5 w-3.5" /> Retry
-          </Button>
-        </div>
-        <WilayasErrorState onRetry={handleRefresh} />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Wilayas Performance</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Analyze performance across all Algerian wilayas</p>
-          </div>
-        </div>
-        <WilayasLoadingSkeleton />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -160,21 +120,17 @@ export default function WilayasPage() {
       </div>
 
       {/* KPI Cards */}
-      <KPICards />
+      <KPICards key={`kpi-${refreshTrigger}`} />
 
       {/* Full Width Combined Filter & Table Component */}
       <div className="w-full">
-        {filteredWilayas.length === 0 ? (
-          <WilayasEmptyState />
-        ) : (
-          <WilayasTable onViewWilaya={handleViewWilaya} />
-        )}
+        <WilayasTable onViewWilaya={handleViewWilaya} refreshTrigger={refreshTrigger} />
       </div>
 
       {/* Bottom Section: Operations & Performance Summary (3 Column Grid Full Width) */}
       <div className="space-y-4 pt-4 border-t border-border/40">
         <h2 className="text-lg font-bold text-foreground tracking-tight">Performance & Regional Summary</h2>
-        <AnalyticsPanel />
+        <AnalyticsPanel key={`analytics-${refreshTrigger}`} />
       </div>
 
       {/* Wilaya Details Drawer */}

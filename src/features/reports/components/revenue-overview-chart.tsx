@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useReportsStore } from '../store';
-import { MOCK_REVENUE_DATA } from '../mock-data';
-import { getDateRangeLabel, formatCurrency } from '../utils';
+import { reportsService, type RevenueOverviewData } from '@/services/reports';
+import { formatCurrency } from '../utils';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 
@@ -15,7 +15,7 @@ const RANGES = ['7d', '30d', '90d', '1y'] as const;
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white dark:bg-card border border-border/60 rounded-xl shadow-lg p-3 min-w-[160px]">
+    <div className="bg-card border border-border/60 rounded-xl shadow-lg p-3 min-w-[160px]">
       <p className="text-[11px] font-bold text-foreground mb-2">{label}</p>
       {payload.map((entry: any) => (
         <div key={entry.dataKey} className="flex items-center justify-between gap-4 text-xs">
@@ -24,7 +24,7 @@ function CustomTooltip({ active, payload, label }: any) {
             <span className="text-muted-foreground capitalize">{entry.dataKey}</span>
           </div>
           <span className="font-semibold text-foreground">
-            {entry.dataKey === 'revenue' ? formatCurrency(entry.value) : entry.value}
+            {entry.dataKey === 'revenue' || entry.dataKey === 'target' ? formatCurrency(entry.value) : entry.value}
           </span>
         </div>
       ))}
@@ -33,8 +33,29 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function RevenueOverviewChart() {
-  const { dateRange, setDateRange } = useReportsStore();
-  const data = MOCK_REVENUE_DATA[dateRange] || MOCK_REVENUE_DATA['30d'];
+  const { dateRange, setDateRange, refreshKey } = useReportsStore();
+  const [data, setData] = useState<RevenueOverviewData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    reportsService
+      .getRevenueOverview(dateRange)
+      .then((res) => {
+        if (isMounted) {
+          setData(res);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey, dateRange]);
 
   return (
     <Card className="border border-border/40 shadow-xs hover:shadow-md transition-all rounded-2xl overflow-hidden bg-card">
@@ -65,41 +86,47 @@ export function RevenueOverviewChart() {
         </div>
       </CardHeader>
       <CardContent className="px-5 pb-5">
-        <div className="h-[320px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#D71920" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#D71920" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.5} />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: '#6B7280' }}
-                axisLine={{ stroke: '#E5E7EB' }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#6B7280' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${v.toLocaleString()} DA`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="#D71920"
-                strokeWidth={2.5}
-                fill="url(#revenueGrad)"
-                animationDuration={1200}
-                animationEasing="ease-out"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {loading ? (
+          <div className="h-[320px] flex items-center justify-center text-xs text-muted-foreground">
+            Loading revenue chart data...
+          </div>
+        ) : (
+          <div className="h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#D71920" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#D71920" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.5} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 10, fill: '#6B7280' }}
+                  axisLine={{ stroke: '#E5E7EB' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: '#6B7280' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k DA`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#D71920"
+                  strokeWidth={2.5}
+                  fill="url(#revenueGrad)"
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

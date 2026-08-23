@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,7 +11,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -23,12 +25,14 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useDelegatesStore } from '../store';
-import { filterDelegates, sortDelegates, formatCurrency } from '../utils';
-import { mockDelegates } from '../mock-data';
+import { formatCurrency } from '../utils';
+import { delegatesService, type DelegateData } from '@/services/delegates';
 import { DelegateStatusBadge } from './delegate-status-badge';
 import { DelegateFilters } from './delegate-filters';
 import { BulkActions } from './bulk-actions';
 import { DelegateProfileDrawer } from './delegate-profile-drawer';
+import { EditDelegateDialog } from './edit-delegate-dialog';
+import { useWebSocketOrders } from '@/hooks/use-websocket-orders';
 import {
   ChevronLeft,
   ChevronRight,
@@ -42,10 +46,10 @@ import {
   BarChart3,
   Trash2,
   MoreHorizontal,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { SortField } from '../types';
-import type { Delegate } from '@/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,19 +67,99 @@ const AVATAR_COLORS = [
 ];
 
 export function DelegatesTable() {
+  const router = useRouter();
   const { filters, selectedIds, sort, page, pageSize, selectedDelegate, toggleSelect, selectAll, clearSelection, setSort, setPage, setPageSize, setSelectedDelegate } = useDelegatesStore();
+  const [delegates, setDelegates] = useState<DelegateData[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [editingDelegate, setEditingDelegate] = useState<DelegateData | null>(null);
 
-  const processedData = useMemo(() => {
-    const filtered = filterDelegates(mockDelegates, filters);
-    const sorted = sortDelegates(filtered, sort.field, sort.direction);
-    return sorted;
-  }, [filters, sort]);
+  const { lastEvent, lastDelegateEvent } = useWebSocketOrders();
 
-  const pageCount = Math.ceil(processedData.length / pageSize);
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return processedData.slice(start, start + pageSize);
-  }, [processedData, page, pageSize]);
+  useEffect(() => {
+    if (!lastDelegateEvent) return;
+
+    setDelegates((prev) =>
+      prev.map((d) => {
+        if (
+          d.id === lastDelegateEvent.id ||
+          d.name.toLowerCase() === lastDelegateEvent.name.toLowerCase()
+        ) {
+          return {
+            ...d,
+            status: lastDelegateEvent.status as any,
+            isOnline: lastDelegateEvent.isOnline,
+            lastActivity: lastDelegateEvent.lastActivity,
+          };
+        }
+        return d;
+      })
+    );
+  }, [lastDelegateEvent]);
+
+  useEffect(() => {
+    if (!lastEvent || lastEvent.type !== 'ORDER_CREATED' || !lastEvent.order) return;
+
+    const delegateName = lastEvent.order.delegate_name;
+    const amount = Number(lastEvent.order.total_amount || 0);
+
+    setDelegates((prev) =>
+      prev.map((d) => {
+        if (
+          (delegateName && d.name.toLowerCase() === delegateName.toLowerCase()) ||
+          (delegateName && d.username && d.username.toLowerCase() === delegateName.toLowerCase())
+        ) {
+          return {
+            ...d,
+            totalOrders: (d.totalOrders || 0) + 1,
+            totalRevenue: (d.totalRevenue || 0) + amount,
+          };
+        }
+        return d;
+      })
+    );
+  }, [lastEvent]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    const fetchDelegates = async () => {
+      try {
+        const params: Record<string, string | string[] | number> = {};
+        if (filters.search) params.search = filters.search;
+        if (filters.status.length) params.status = filters.status;
+        if (filters.region.length) params.region = filters.region;
+        params.sortField = sort.field;
+        params.sortDirection = sort.direction;
+        params.page = page + 1;
+        params.pageSize = pageSize;
+
+        const result = await delegatesService.list(params);
+        if (!cancelled) {
+          setDelegates(result.data);
+          setTotal(result.total);
+        }
+      } catch {
+        if (!cancelled) {
+          toast.error('Failed to load delegates');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchDelegates();
+    const interval = setInterval(fetchDelegates, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [filters, sort, page, pageSize]);
+
+  const processedData = delegates;
+  const pageCount = Math.ceil(total / pageSize);
+  const paginatedData = processedData;
 
   const handleSort = useCallback(
     (field: SortField) => {
@@ -100,7 +184,7 @@ export function DelegatesTable() {
     }
   }, [allSelected, allPageIds, selectAll, clearSelection]);
 
-  const columns = useMemo<ColumnDef<Delegate>[]>(
+  const columns = useMemo<ColumnDef<DelegateData>[]>(
     () => [
       {
         id: 'select',
@@ -124,13 +208,13 @@ export function DelegatesTable() {
       },
       {
         accessorKey: 'id',
-        header: 'ID',
+        header: 'Delegate Code',
         cell: ({ row }) => (
           <span className="font-bold font-mono text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-            {row.original.id}
+            {row.original.delegateCode || `DEL-2026-${String(row.original.id).padStart(6, '0')}`}
           </span>
         ),
-        size: 90,
+        size: 130,
       },
       {
         accessorKey: 'name',
@@ -148,10 +232,7 @@ export function DelegatesTable() {
           </button>
         ),
         cell: ({ row }) => (
-          <div
-            className="flex items-center gap-2.5 min-w-0 cursor-pointer group"
-            onClick={() => setSelectedDelegate(row.original.id)}
-          >
+          <Link href={`/delegates/${row.original.id}`} className="flex items-center gap-2.5 min-w-0 cursor-pointer group">
             <Avatar className="h-7 w-7 flex-shrink-0">
               <AvatarFallback className={cn('text-xs font-bold', AVATAR_COLORS[row.index % AVATAR_COLORS.length])}>
                 {row.original.name.split(' ').map((n) => n[0]).join('')}
@@ -165,7 +246,7 @@ export function DelegatesTable() {
                 {row.original.email}
               </span>
             </div>
-          </div>
+          </Link>
         ),
         size: 180,
       },
@@ -292,7 +373,12 @@ export function DelegatesTable() {
             )}
           </button>
         ),
-        cell: ({ row }) => <DelegateStatusBadge status={row.original.status} />,
+        cell: ({ row }) => (
+          <DelegateStatusBadge
+            status={row.original.status}
+            lastActivity={row.original.lastActivity}
+          />
+        ),
         size: 110,
       },
       {
@@ -300,30 +386,31 @@ export function DelegatesTable() {
         header: '',
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-              onClick={() => setSelectedDelegate(row.original.id)}
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </Button>
+            <Link href={`/delegates/${row.original.id}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
+                title="View Profile"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
 
             <DropdownMenu>
-              <DropdownMenuTrigger className="outline-none">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
+              <DropdownMenuTrigger
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'icon' }),
+                  'h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted outline-none cursor-pointer'
+                )}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem onClick={() => setSelectedDelegate(row.original.id)}>
+                <DropdownMenuItem onClick={() => router.push(`/delegates/${row.original.id}`)}>
                   <BarChart3 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> View Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info(`Edit ${row.original.name}`)}>
+                <DropdownMenuItem onClick={() => setEditingDelegate(row.original)}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Edit Details
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => toast.info(`New order for ${row.original.name}`)}>
@@ -375,8 +462,9 @@ export function DelegatesTable() {
               <div>
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-bold tracking-tight">Delegates Directory</CardTitle>
-                  <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2 py-0.5">
-                    {processedData.length} Delegates
+                  <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2.5 py-0.5 gap-1.5 flex items-center">
+                    {loading && <Loader2 className="h-3 w-3 text-primary animate-spin" />}
+                    <span>{total} Delegates</span>
                   </Badge>
                 </div>
                 <CardDescription className="text-xs text-muted-foreground mt-0.5">
@@ -415,7 +503,21 @@ export function DelegatesTable() {
               </TableHeader>
 
               <TableBody>
-                {table.getRowModel().rows.length > 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-48 text-center">
+                      <div className="flex flex-col items-center justify-center gap-2.5 py-8">
+                        <div className="p-3 rounded-full bg-primary/10 text-primary">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-foreground">Fetching delegates directory...</p>
+                          <p className="text-[11px] text-muted-foreground">Loading field sales records and territory data</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows.length > 0 ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -517,6 +619,21 @@ export function DelegatesTable() {
         <DelegateProfileDrawer
           delegateId={selectedDelegate}
           onClose={() => setSelectedDelegate(null)}
+        />
+      )}
+
+      {/* Edit Delegate Profile Dialog */}
+      {editingDelegate && (
+        <EditDelegateDialog
+          delegate={editingDelegate}
+          open={!!editingDelegate}
+          onOpenChange={(open) => {
+            if (!open) setEditingDelegate(null);
+          }}
+          onUpdated={(updated) => {
+            setDelegates((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+            setEditingDelegate(null);
+          }}
         />
       )}
     </>

@@ -1,19 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { BrandingSection } from './components/branding-section';
 import { LoginCard } from './components/login-card';
 import { LoginFooter } from './components/login-footer';
+import { useAuthStore } from '@/store';
 
 export default function LoginPage() {
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated, fetchUser } = useAuthStore();
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    fetchUser().then(() => setMounted(true));
+  }, [fetchUser]);
 
-  if (!mounted) return null;
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [mounted, isAuthenticated, router]);
+
+  if (!mounted || isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col justify-between selection:bg-[#D71920]/20 selection:text-[#D71920] relative">

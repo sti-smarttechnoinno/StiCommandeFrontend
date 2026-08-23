@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +16,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function useLoginForm() {
+  const router = useRouter();
   const { login } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,19 +34,7 @@ export function useLoginForm() {
     async (data: LoginFormData) => {
       setIsLoading(true);
       try {
-        // Simulate API call - in production this would call the actual auth endpoint
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // Demo login - accept any valid email/password
-        const user = {
-          id: 'usr-001',
-          name: data.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          email: data.email,
-          role: 'admin',
-          avatar: data.email.charAt(0).toUpperCase(),
-        };
-
-        login(user, 'demo-access-token', 'demo-refresh-token');
+        await login(data.email, data.password);
 
         if (rememberMe) {
           localStorage.setItem('remembered_email', data.email);
@@ -53,11 +43,10 @@ export function useLoginForm() {
         }
 
         toast.success('Login successful', {
-          description: `Welcome back, ${user.name}`,
+          description: `Welcome back`,
         });
 
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       } catch (error) {
         toast.error('Login failed', {
           description: 'Invalid email or password. Please try again.',
@@ -66,7 +55,7 @@ export function useLoginForm() {
         setIsLoading(false);
       }
     },
-    [login, rememberMe]
+    [login, rememberMe, router]
   );
 
   const togglePassword = useCallback(() => {

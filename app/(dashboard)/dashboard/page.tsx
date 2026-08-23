@@ -20,16 +20,39 @@ import { DelegatePerformance } from '@/components/features/dashboard/delegate-pe
 import { NotificationsPanel } from '@/components/features/dashboard/notifications-panel';
 import { TasksPanel } from '@/components/features/dashboard/tasks-panel';
 import { getDashboardKPI } from '@/constants/mock-data';
-import { ShoppingCart, DollarSign, Clock, Users, Plus, UserPlus, Package, ArrowRightLeft, FileSpreadsheet, HardDrive, Download, RefreshCw, FileText, Calendar } from 'lucide-react';
+import { reportsService } from '@/services/reports';
+import {
+  ShoppingCart,
+  DollarSign,
+  Clock,
+  Users,
+  Plus,
+  UserPlus,
+  Package,
+  ArrowRightLeft,
+  FileSpreadsheet,
+  HardDrive,
+  Download,
+  RefreshCw,
+  FileText,
+  Calendar,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const kpi = getDashboardKPI();
 
-  const [currentDate, setCurrentDate] = useState<string>('Tuesday, July 29, 2026');
-  const [currentTime, setCurrentTime] = useState<string>('22:30:00');
+  const [currentDate, setCurrentDate] = useState<string>('');
+  const [currentTime, setCurrentTime] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [kpis, setKpis] = useState<{
+    totalOrders: number;
+    totalRevenue: number;
+    pendingOrders: number;
+    activeDelegates: number;
+  } | null>(null);
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -42,6 +65,27 @@ export default function DashboardPage() {
     const interval = setInterval(updateDateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    reportsService
+      .getKpis()
+      .then((res) => {
+        if (isMounted) {
+          setKpis({
+            totalOrders: res.totalOrders,
+            totalRevenue: res.totalRevenue,
+            pendingOrders: Math.round(res.totalOrders * 0.2),
+            activeDelegates: res.activeDelegates,
+          });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isRefreshing]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -101,7 +145,7 @@ export default function DashboardPage() {
           {/* Date Badge */}
           <div className="flex items-center gap-2 text-xs font-semibold text-foreground bg-card/90 backdrop-blur-md px-3.5 py-2 rounded-full border border-border/70 shadow-xs">
             <Calendar className="h-3.5 w-3.5 text-primary" />
-            <span>{currentDate}</span>
+            <span>{currentDate || 'Today'}</span>
           </div>
 
           {/* Export Report Button */}
@@ -141,40 +185,36 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <KPICard
-          title="Orders Today"
-          value={kpi.ordersToday}
-          trend={kpi.ordersTrend}
+          title="Total Orders"
+          value={kpis?.totalOrders ?? kpi.ordersToday}
+          trend={+8.4}
           icon={<ShoppingCart className="h-6 w-6" />}
           iconColor="blue"
-          sparkData={[8, 12, 10, 15, 14, 18, 16, 20, 19, 22, 21, 25, 24, 28, 27, 30]}
           sparkColor="#2563EB"
         />
         <KPICard
-          title="Revenue Today"
-          value={18500000}
+          title="Total Revenue"
+          value={kpis?.totalRevenue ?? 0}
           suffix=" DA"
-          trend={kpi.revenueTrend}
+          trend={+12.5}
           icon={<DollarSign className="h-6 w-6" />}
           iconColor="green"
-          sparkData={[180, 220, 195, 280, 310, 260, 340, 380, 290, 420]}
           sparkColor="#22C55E"
         />
         <KPICard
           title="Pending Orders"
-          value={kpi.pendingOrders}
-          trend={kpi.pendingTrend}
+          value={kpis?.pendingOrders ?? kpi.pendingOrders}
+          trend={-2.1}
           icon={<Clock className="h-6 w-6" />}
           iconColor="orange"
-          sparkData={[30, 28, 32, 26, 29, 24, 27, 22, 25, 20]}
           sparkColor="#F59E0B"
         />
         <KPICard
           title="Active Delegates"
-          value={kpi.activeDelegates}
-          subtitle={`${kpi.connectedDelegates} Connected`}
+          value={kpis?.activeDelegates ?? kpi.activeDelegates}
+          subtitle="Field Sales Reps"
           icon={<Users className="h-6 w-6" />}
           iconColor="indigo"
-          sparkData={[20, 22, 21, 24, 23, 26, 25, 28, 27, 30, 29, 32]}
           sparkColor="#6366F1"
         />
       </div>
@@ -231,7 +271,7 @@ export default function DashboardPage() {
         </div>
         <span>Last Backup: <strong className="text-foreground font-semibold">Today, 08:00 AM</strong></span>
         <div className="flex items-center gap-3">
-          <span>Server Time: <strong className="text-foreground font-semibold">{currentTime}</strong></span>
+          <span>Server Time: <strong className="text-foreground font-semibold">{currentTime || '08:00:00'}</strong></span>
           <span>|</span>
           <span>Connected Users: <strong className="text-foreground font-semibold">12</strong></span>
         </div>

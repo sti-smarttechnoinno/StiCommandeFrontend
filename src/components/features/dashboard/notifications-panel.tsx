@@ -1,23 +1,45 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getNotifications } from '@/constants/mock-data';
+import { notificationsService } from '@/services/notifications';
+import type { Notification } from '@/features/notifications/types';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
 import { ShoppingCart, AlertTriangle, User, Server, Bell, ArrowRight, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 
-const NOTIF_ICONS = {
-  order: { icon: ShoppingCart, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+const NOTIF_ICONS: Record<string, { icon: any; color: string }> = {
+  orders: { icon: ShoppingCart, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
   stock: { icon: AlertTriangle, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-  delegate: { icon: User, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+  delegates: { icon: User, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
   system: { icon: Server, color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400' },
 };
 
 export function NotificationsPanel() {
-  const notifications = getNotifications();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    notificationsService
+      .list({ pageSize: 5 })
+      .then((res) => {
+        if (isMounted) {
+          setNotifications(res.data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
@@ -53,7 +75,9 @@ export function NotificationsPanel() {
       <CardContent className="p-3 flex-1 flex flex-col justify-between space-y-1">
         <div className="space-y-1 flex-1">
           {notifications.map((n) => {
-            const { icon: Icon, color } = NOTIF_ICONS[n.type];
+            const notifConfig = NOTIF_ICONS[n.category] || NOTIF_ICONS.orders;
+            const Icon = notifConfig.icon;
+            const color = notifConfig.color;
             return (
               <div
                 key={n.id}
@@ -71,11 +95,11 @@ export function NotificationsPanel() {
                       {n.title}
                     </span>
                     <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
-                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                      {n.timestamp ? n.timestamp : 'Just now'}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-snug mt-0.5 line-clamp-1">
-                    {n.message}
+                    {n.description}
                   </p>
                 </div>
                 {!n.read && (

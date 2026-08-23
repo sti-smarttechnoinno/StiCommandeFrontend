@@ -29,6 +29,7 @@ export interface Wilaya {
 
 export interface RegionData {
   id: RegionId;
+  dbId?: string;
   name: string;
   nameFr: string;
   subtitle: string;
@@ -41,6 +42,7 @@ export interface RegionData {
   clients: number;
   ordersToday: number;
   revenue: number;
+  status?: 'active' | 'inactive' | 'archived';
 }
 
 export interface RegionsFilters {

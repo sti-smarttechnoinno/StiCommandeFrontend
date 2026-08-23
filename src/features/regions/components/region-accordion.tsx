@@ -153,7 +153,7 @@ const WilayaCard = memo(function WilayaCard({ wilaya, onOpen }: { wilaya: Wilaya
   );
 });
 
-function RegionAccordionCard({ region }: { region: RegionData }) {
+function RegionAccordionCard({ region, onEditRegion }: { region: RegionData; onEditRegion?: (region: RegionData) => void }) {
   const { expandedRegions, toggleRegion, setSelectedWilaya } = useRegionsStore();
   const isExpanded = expandedRegions.has(region.id);
 
@@ -167,8 +167,8 @@ function RegionAccordionCard({ region }: { region: RegionData }) {
   return (
     <Card className="border border-border/40 shadow-xs rounded-2xl overflow-hidden hover:shadow-md hover:border-border/60 transition-all duration-200 bg-card">
       {/* Region Header Row (High Density ERP Style) */}
-      <button
-        className="w-full px-5 py-3.5 flex items-center gap-4 text-left hover:bg-muted/20 transition-colors"
+      <div
+        className="w-full px-5 py-3.5 flex items-center gap-4 text-left hover:bg-muted/20 transition-colors cursor-pointer"
         onClick={() => toggleRegion(region.id)}
       >
         {/* Name & Subtitle */}
@@ -214,6 +214,23 @@ function RegionAccordionCard({ region }: { region: RegionData }) {
           </div>
         </div>
 
+        {/* Action Button: Edit / Customize */}
+        {onEditRegion && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 rounded-xl text-xs font-semibold gap-1.5 border-border/70 hover:bg-primary/10 hover:text-primary hover:border-primary/30 flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditRegion(region);
+            }}
+            title="Customize Region, Wilayas & Delegates"
+          >
+            <Pencil className="h-3.5 w-3.5 text-primary" />
+            <span className="hidden sm:inline">Customize</span>
+          </Button>
+        )}
+
         {/* Chevron */}
         <motion.div
           animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -222,7 +239,7 @@ function RegionAccordionCard({ region }: { region: RegionData }) {
         >
           <ChevronDown className="h-4.5 w-4.5 text-muted-foreground" />
         </motion.div>
-      </button>
+      </div>
 
       {/* Expanded Wilayas Grid */}
       <AnimatePresence initial={false}>
@@ -248,11 +265,17 @@ function RegionAccordionCard({ region }: { region: RegionData }) {
   );
 }
 
-export function RegionAccordion({ regions }: { regions: RegionData[] }) {
+export function RegionAccordion({
+  regions,
+  onEditRegion,
+}: {
+  regions: RegionData[];
+  onEditRegion?: (region: RegionData) => void;
+}) {
   return (
     <div className="space-y-3">
       {regions.map((region) => (
-        <RegionAccordionCard key={region.id} region={region} />
+        <RegionAccordionCard key={region.id} region={region} onEditRegion={onEditRegion} />
       ))}
     </div>
   );

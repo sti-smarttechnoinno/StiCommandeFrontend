@@ -10,7 +10,6 @@ import {
   FileText,
   Bell,
   Settings,
-  LogOut,
   HardDrive,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -33,13 +32,11 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Stock', href: '/stock', icon: HardDrive },
   { label: 'Reports', href: '/reports', icon: BarChart3 },
   { label: 'Users', href: '/users', icon: FileText },
-  { label: 'Notifications', href: '/notifications', icon: Bell, badge: 5 },
+  { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export const BOTTOM_NAV_ITEMS: NavItem[] = [
-  { label: 'Logout', href: '/logout', icon: LogOut },
-];
+export const BOTTOM_NAV_ITEMS: NavItem[] = [];
 
 export const ORDER_STATUSES = [
   { value: 'pending', label: 'Pending', color: '#F59E0B' },

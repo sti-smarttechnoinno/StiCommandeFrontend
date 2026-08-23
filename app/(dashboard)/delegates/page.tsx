@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -94,14 +95,15 @@ export default function DelegatesPage() {
           </Button>
 
           {/* New Delegate Primary Button */}
-          <Button
-            size="sm"
-            onClick={() => toast.success('New Delegate Dialog')}
-            className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus className="h-3.5 w-3.5 text-primary-foreground" />
-            <span>New Delegate</span>
-          </Button>
+          <Link href="/delegates/new">
+            <Button
+              size="sm"
+              className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+              <span>New Delegate</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

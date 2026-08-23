@@ -18,8 +18,11 @@ import { RegionToolbar } from '@/features/regions/components/region-toolbar';
 import { RegionAccordion } from '@/features/regions/components/region-accordion';
 import { AnalyticsPanel } from '@/features/regions/components/analytics-panel';
 import { WilayaDrawer } from '@/features/regions/components/wilaya-drawer';
+import { CreateRegionDialog } from '@/features/regions/components/create-region-dialog';
 import { RegionsLoadingSkeleton } from '@/features/regions/components/loading-skeleton';
 import { RegionsEmptyState, RegionsErrorState } from '@/features/regions/components/error-states';
+import { regionsService } from '@/services/regions';
+import type { RegionData } from '@/features/regions/types';
 import { Plus, Download, RefreshCw, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -28,27 +31,52 @@ export default function RegionsPage() {
   const { filters, selectedWilaya, setSelectedWilaya } = useRegionsStore();
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Friday, July 31, 2026');
-  const [isLoading, setIsLoading] = useState(false);
+  const [regions, setRegions] = useState<RegionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Dialog State for Create / Customize Region
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingRegion, setEditingRegion] = useState<RegionData | null>(null);
+
+  const fetchRegionsFromBackend = useCallback(async () => {
+    try {
+      setHasError(false);
+      const result = await regionsService.list();
+      setRegions(result.data || []);
+    } catch {
+      setRegions([]);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
     setCurrentDate(format(new Date(), 'EEEE, MMMM d, yyyy'));
-  }, []);
+    fetchRegionsFromBackend();
+  }, [fetchRegionsFromBackend]);
 
-  const filteredRegions = useMemo(() => filterRegions(mockRegions, filters), [filters]);
+  const filteredRegions = useMemo(() => filterRegions(regions, filters), [regions, filters]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    setIsLoading(true);
-    setHasError(false);
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsRefreshing(false);
-      toast.success('Regions refreshed');
-    }, 800);
-  }, []);
+    fetchRegionsFromBackend().then(() => {
+      toast.success('Regions refreshed from backend');
+    });
+  }, [fetchRegionsFromBackend]);
+
+  const handleOpenCreate = () => {
+    setEditingRegion(null);
+    setCreateDialogOpen(true);
+  };
+
+  const handleOpenCustomize = (region: RegionData) => {
+    setEditingRegion(region);
+    setCreateDialogOpen(true);
+  };
 
   if (!mounted) return null;
 
@@ -107,7 +135,7 @@ export default function RegionsPage() {
             Regions Management
           </h1>
           <p className="text-sm text-muted-foreground">
-            Manage Algeria&apos;s geographical distribution network, delegates, and 58 wilayas.
+            Manage Algeria&apos;s geographical distribution network, customize commercial delegates, and 58 wilayas.
           </p>
         </div>
 
@@ -144,7 +172,7 @@ export default function RegionsPage() {
           {/* New Region Primary Button */}
           <Button
             size="sm"
-            onClick={() => toast.success('Add Region Dialog')}
+            onClick={handleOpenCreate}
             className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="h-3.5 w-3.5 text-primary-foreground" />
@@ -154,7 +182,7 @@ export default function RegionsPage() {
       </div>
 
       {/* KPI Cards */}
-      <KPICards />
+      <KPICards regions={regions} />
 
       {/* Region Toolbar & Filter */}
       <RegionToolbar />
@@ -164,7 +192,7 @@ export default function RegionsPage() {
         {filteredRegions.length === 0 ? (
           <RegionsEmptyState />
         ) : (
-          <RegionAccordion regions={filteredRegions} />
+          <RegionAccordion regions={filteredRegions} onEditRegion={handleOpenCustomize} />
         )}
       </div>
 
@@ -178,6 +206,16 @@ export default function RegionsPage() {
       {selectedWilaya && (
         <WilayaDrawer wilayaId={selectedWilaya} onClose={() => setSelectedWilaya(null)} />
       )}
+
+      {/* Create / Customize Region Dialog */}
+      <CreateRegionDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        regionToEdit={editingRegion}
+        onSaved={() => {
+          fetchRegionsFromBackend();
+        }}
+      />
     </div>
   );
 }

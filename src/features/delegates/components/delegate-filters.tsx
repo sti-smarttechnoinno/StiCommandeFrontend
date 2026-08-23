@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -44,25 +44,22 @@ interface FilterDropdownProps {
 function FilterDropdown({ label, options, selected, onToggle, onClear }: FilterDropdownProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="outline-none">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'h-9 px-3.5 rounded-[12px] text-xs font-medium gap-1.5 border transition-colors',
-            selected.length > 0
-              ? 'border-primary/30 bg-primary/5 text-primary hover:bg-primary/10'
-              : 'border-border/60 bg-white text-muted-foreground hover:bg-muted/70'
-          )}
-        >
-          {label}
-          {selected.length > 0 && (
-            <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px] rounded-full bg-primary/20 text-primary">
-              {selected.length}
-            </Badge>
-          )}
-          <ChevronDown className="h-3 w-3" />
-        </Button>
+      <DropdownMenuTrigger
+        className={cn(
+          buttonVariants({ variant: 'ghost', size: 'sm' }),
+          'h-9 px-3.5 rounded-[12px] text-xs font-medium gap-1.5 border transition-colors outline-none cursor-pointer',
+          selected.length > 0
+            ? 'border-primary/30 bg-primary/5 text-primary hover:bg-primary/10'
+            : 'border-border/60 bg-white text-muted-foreground hover:bg-muted/70'
+        )}
+      >
+        {label}
+        {selected.length > 0 && (
+          <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px] rounded-full bg-primary/20 text-primary">
+            {selected.length}
+          </Badge>
+        )}
+        <ChevronDown className="h-3 w-3" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-52 rounded-xl p-1.5">
         <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2">{label}</DropdownMenuLabel>

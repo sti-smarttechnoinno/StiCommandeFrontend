@@ -1,16 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { generateDelegates } from '@/constants/mock-data';
+import { reportsService, type TopDelegateData } from '@/services/reports';
 import { Award, MapPin, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-
-const delegates = generateDelegates(5);
 
 const RANK_BADGES = [
   'bg-amber-500/15 text-amber-600 dark:text-amber-400',
@@ -29,6 +28,27 @@ const AVATAR_COLORS = [
 ];
 
 export function DelegatePerformance() {
+  const [delegates, setDelegates] = useState<TopDelegateData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    reportsService
+      .getTopDelegates()
+      .then((res) => {
+        if (isMounted) {
+          setDelegates(res);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   return (
     <Card className="border border-border/40 shadow-xs rounded-2xl overflow-hidden flex flex-col justify-between">
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
@@ -85,14 +105,7 @@ export function DelegatePerformance() {
                     {d.name.split(' ').map((n) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <span
-                  className={cn(
-                    'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background',
-                    d.status === 'online' && 'bg-emerald-500',
-                    d.status === 'busy' && 'bg-amber-500',
-                    d.status === 'offline' && 'bg-slate-400'
-                  )}
-                />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-background bg-emerald-500" />
               </div>
 
               <div className="min-w-0">
@@ -108,28 +121,22 @@ export function DelegatePerformance() {
 
             {/* Column 2: Orders */}
             <div className="hidden sm:block col-span-2 text-center text-xs">
-              <span className="font-bold text-foreground">{d.totalOrders}</span>
+              <span className="font-bold text-foreground">{d.orders}</span>
             </div>
 
             {/* Column 3: Revenue */}
             <div className="hidden sm:block col-span-2 text-center text-xs">
-              <span className="font-bold text-foreground">{(d.totalRevenue / 1000).toFixed(0)}K DA</span>
+              <span className="font-bold text-foreground">{(d.sales / 1000).toFixed(0)}K DA</span>
             </div>
 
             {/* Column 4: Rate & Progress Bar */}
             <div className="hidden md:block col-span-2 text-center px-1">
               <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground mb-1">
-                <span>{d.completionRate}%</span>
+                <span>{d.targetAchievement}%</span>
               </div>
               <Progress
-                value={d.completionRate}
+                value={d.targetAchievement}
                 className="h-1.5 bg-muted rounded-full"
-                indicatorClassName={cn(
-                  'rounded-full',
-                  d.completionRate >= 90 && 'bg-emerald-500',
-                  d.completionRate >= 80 && d.completionRate < 90 && 'bg-blue-500',
-                  d.completionRate < 80 && 'bg-amber-500'
-                )}
               />
             </div>
 
@@ -137,14 +144,9 @@ export function DelegatePerformance() {
             <div className="col-span-6 sm:col-span-4 md:col-span-2 flex justify-end">
               <Badge
                 variant="ghost"
-                className={cn(
-                  'px-2.5 py-0.5 rounded-full text-[11px] font-medium border-none',
-                  d.status === 'online' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-                  d.status === 'busy' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                  d.status === 'offline' && 'bg-slate-500/10 text-slate-600 dark:text-slate-400'
-                )}
+                className="px-2.5 py-0.5 rounded-full text-[11px] font-medium border-none bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
               >
-                {d.status.charAt(0).toUpperCase() + d.status.slice(1)}
+                Active
               </Badge>
             </div>
           </div>

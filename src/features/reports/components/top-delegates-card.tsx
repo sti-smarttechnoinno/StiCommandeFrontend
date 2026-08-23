@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { MOCK_DELEGATES } from '../mock-data';
-import { formatCurrency, getGrowthColor } from '../utils';
-import { Trophy, TrendingUp } from 'lucide-react';
+import { reportsService, type TopDelegateData } from '@/services/reports';
+import { useReportsStore } from '../store';
+import { formatCurrency } from '../utils';
+import { Trophy } from 'lucide-react';
 
 const MEDAL_COLORS = ['#D71920', '#2563EB', '#F59E0B'];
 const AVATAR_COLORS = [
@@ -14,63 +16,81 @@ const AVATAR_COLORS = [
   'bg-amber-500/10 text-amber-600',
   'bg-indigo-500/10 text-indigo-600',
   'bg-teal-500/10 text-teal-600',
-  'bg-purple-500/10 text-purple-600',
-  'bg-emerald-500/10 text-emerald-600',
-  'bg-orange-500/10 text-orange-600',
 ];
 
 export function TopDelegatesCard() {
+  const refreshKey = useReportsStore((s) => s.refreshKey);
+  const [delegates, setDelegates] = useState<TopDelegateData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    reportsService
+      .getTopDelegates()
+      .then((res) => {
+        if (isMounted) {
+          setDelegates(res);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey]);
+
   return (
-    <Card className="border border-border/40 shadow-xs hover:shadow-md transition-all rounded-[20px] overflow-hidden bg-card">
-      <CardHeader className="pb-3">
+    <Card className="border border-border/40 shadow-xs hover:shadow-md transition-all rounded-[20px] overflow-hidden bg-card h-full flex flex-col justify-between">
+      <CardHeader className="pb-3 border-b border-border/30">
         <CardTitle className="text-sm font-bold tracking-tight flex items-center gap-2">
           <Trophy className="h-4 w-4 text-primary" />
-          Top Delegates
+          Top Performing Delegates
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-5 pb-5">
-        <div className="space-y-3">
-          {MOCK_DELEGATES.slice(0, 6).map((delegate, i) => (
-            <div
-              key={delegate.id}
-              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors group"
-            >
-              {/* Rank */}
+      <CardContent className="px-5 pb-5 pt-3 flex-1 flex flex-col justify-center">
+        {loading ? (
+          <div className="py-8 text-center text-xs text-muted-foreground">Loading delegates ranking...</div>
+        ) : (
+          <div className="space-y-3">
+            {delegates.slice(0, 5).map((delegate, i) => (
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                style={{
-                  backgroundColor: i < 3 ? `${MEDAL_COLORS[i]}15` : 'transparent',
-                  color: i < 3 ? MEDAL_COLORS[i] : '#6B7280',
-                }}
+                key={delegate.id}
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors group"
               >
-                {i + 1}
-              </div>
-
-              {/* Avatar */}
-              <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0', AVATAR_COLORS[i])}>
-                {delegate.avatar}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-foreground truncate">{delegate.name}</span>
-                  <span className="text-[10px] font-bold text-foreground ml-2">{formatCurrency(delegate.revenue)}</span>
+                {/* Rank */}
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{
+                    backgroundColor: i < 3 ? `${MEDAL_COLORS[i]}15` : 'transparent',
+                    color: i < 3 ? MEDAL_COLORS[i] : '#6B7280',
+                  }}
+                >
+                  {i + 1}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground">{delegate.region}</span>
-                  <span className="text-[10px] text-muted-foreground">·</span>
-                  <span className="text-[10px] text-muted-foreground">{delegate.orders} orders</span>
-                  <span className={cn('text-[10px] font-semibold ml-auto flex items-center gap-0.5', getGrowthColor(delegate.trend))}>
-                    <TrendingUp className="h-2.5 w-2.5" />
-                    +{delegate.trend}%
-                  </span>
+
+                {/* Avatar */}
+                <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0', AVATAR_COLORS[i % AVATAR_COLORS.length])}>
+                  {delegate.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                 </div>
-                <Progress value={delegate.completion} className="h-1.5 mt-1.5 rounded-full" />
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-foreground truncate">{delegate.name}</span>
+                    <span className="text-[10px] font-bold text-foreground ml-2">{formatCurrency(delegate.sales)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Progress value={delegate.targetAchievement} className="h-1.5 flex-1 bg-muted" />
+                    <span className="text-[9px] font-bold text-muted-foreground">{delegate.orders} orders</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

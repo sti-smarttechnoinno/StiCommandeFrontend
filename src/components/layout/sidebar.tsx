@@ -4,10 +4,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { NAV_ITEMS, BOTTOM_NAV_ITEMS } from '@/constants';
+import { NAV_ITEMS } from '@/constants';
 import { useUIStore } from '@/store';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { CheckCircle } from 'lucide-react';
+import { useWebSocketOrders } from '@/hooks/use-websocket-orders';
+import { notificationsService } from '@/services/notifications';
+import { useNotificationsStore } from '@/features/notifications/store';
+import { useState, useEffect } from 'react';
 
 const SYSTEM_STATUS = [
   { label: 'Connected Server', online: true },
@@ -21,6 +25,16 @@ export function Sidebar() {
   const { sidebarCollapsed, sidebarMobileOpen, setSidebarMobileOpen } = useUIStore();
   const isMobile = useMediaQuery('(max-width: 1023px)');
   const collapsed = !isMobile && sidebarCollapsed;
+  const { unvalidatedCount } = useWebSocketOrders();
+  const refreshKey = useNotificationsStore((s) => s.refreshKey);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+
+  useEffect(() => {
+    notificationsService
+      .getKpis()
+      .then((res) => setUnreadNotificationsCount(res.unreadCount))
+      .catch(() => setUnreadNotificationsCount(0));
+  }, [refreshKey, pathname]);
 
   return (
     <>
@@ -90,6 +104,15 @@ export function Sidebar() {
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
+            let badgeValue: number | undefined = undefined;
+            if (item.href === '/orders' && unvalidatedCount > 0) {
+              badgeValue = unvalidatedCount;
+            } else if (item.href === '/notifications' && unreadNotificationsCount > 0) {
+              badgeValue = unreadNotificationsCount;
+            } else if (item.badge) {
+              badgeValue = item.badge;
+            }
+
             return (
               <Link
                 key={item.href}
@@ -107,30 +130,14 @@ export function Sidebar() {
                 )}
                 <Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-primary' : 'opacity-70 group-hover:opacity-100')} />
                 {!collapsed && <span>{item.label}</span>}
-                {item.badge && !collapsed && (
-                  <span className="ml-auto bg-primary text-white text-[11px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
-                    {item.badge}
+                {badgeValue && !collapsed && (
+                  <span className={cn(
+                    "ml-auto text-white text-[11px] font-bold px-2 py-0.5 rounded-full leading-none shadow-xs",
+                    item.href === '/orders' ? "bg-amber-500 animate-pulse" : "bg-primary"
+                  )}>
+                    {badgeValue}
                   </span>
                 )}
-              </Link>
-            );
-          })}
-
-          <div className="h-px bg-border/40 my-3" />
-
-          {BOTTOM_NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                  'text-destructive hover:bg-destructive/10'
-                )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0 opacity-70 group-hover:opacity-100" />
-                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}

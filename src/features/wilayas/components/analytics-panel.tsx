@@ -1,28 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '../utils';
-import { mockWilayas } from '../mock-data';
-import { PieChart, Trophy, MapPin } from 'lucide-react';
-
-const REGION_REVENUE = [
-  { name: 'East Region', revenue: 65000000, color: '#2563EB', wilayas: 15 },
-  { name: 'Center Region', revenue: 85000000, color: '#22C55E', wilayas: 13 },
-  { name: 'West Region', revenue: 52000000, color: '#8B5CF6', wilayas: 10 },
-  { name: 'South Region', revenue: 20500000, color: '#F59E0B', wilayas: 20 },
-];
-
-const TOP_WILAYAS = [...mockWilayas]
-  .sort((a, b) => b.monthlyRevenue - a.monthlyRevenue)
-  .slice(0, 5);
-
-const PERFORMANCE_COUNTS = {
-  excellent: mockWilayas.filter((w) => w.performance === 'excellent').length,
-  good: mockWilayas.filter((w) => w.performance === 'good').length,
-  average: mockWilayas.filter((w) => w.performance === 'average').length,
-  needs_attention: mockWilayas.filter((w) => w.performance === 'needs_attention').length,
-};
+import { formatCurrency, formatCompactCurrency } from '../utils';
+import { wilayasService, type WilayasAnalyticsResponse } from '@/services/wilayas';
+import { PieChart, Trophy, MapPin, Loader2 } from 'lucide-react';
 
 const PERFORMANCE_CONFIG = {
   excellent: { label: 'Excellent', color: 'bg-emerald-500', textColor: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10 border-emerald-500/20' },
@@ -31,16 +14,16 @@ const PERFORMANCE_CONFIG = {
   needs_attention: { label: 'Needs Attention', color: 'bg-rose-500', textColor: 'text-rose-600 dark:text-rose-400', bgColor: 'bg-rose-500/10 border-rose-500/20' },
 };
 
-function DonutChart() {
-  const total = REGION_REVENUE.reduce((s, r) => s + r.revenue, 0);
+function DonutChart({ data }: { data: WilayasAnalyticsResponse['regionalDistribution'] }) {
+  const total = data.reduce((s, r) => s + r.revenue, 0);
   let cumulativePercent = 0;
 
   return (
     <div className="flex items-center gap-4">
       <div className="relative w-28 h-28 flex-shrink-0">
         <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-          {REGION_REVENUE.map((segment) => {
-            const percent = (segment.revenue / total) * 100;
+          {data.map((segment) => {
+            const percent = total > 0 ? (segment.revenue / total) * 100 : 0;
             const dashArray = `${percent} ${100 - percent}`;
             const offset = -cumulativePercent;
             cumulativePercent += percent;
@@ -61,12 +44,12 @@ function DonutChart() {
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-1">
-          <span className="text-[11px] font-bold text-foreground leading-tight">222,500,000</span>
-          <span className="text-[9px] text-muted-foreground">DA Total</span>
+          <span className="text-[11px] font-bold text-foreground leading-tight">{formatCompactCurrency(total)}</span>
+          <span className="text-[9px] text-muted-foreground">Total</span>
         </div>
       </div>
       <div className="flex-1 space-y-1.5">
-        {REGION_REVENUE.map((region) => (
+        {data.map((region) => (
           <div key={region.name} className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: region.color }} />
             <span className="text-[11px] text-muted-foreground flex-1 truncate">{region.name}</span>
@@ -79,6 +62,33 @@ function DonutChart() {
 }
 
 export function AnalyticsPanel() {
+  const [analytics, setAnalytics] = useState<WilayasAnalyticsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    wilayasService
+      .getAnalytics()
+      .then((data) => {
+        setAnalytics(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading || !analytics) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch w-full">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="h-48 border border-border/40 shadow-xs rounded-2xl flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const totalWilayasCount = Object.values(analytics.performanceCounts).reduce((a, b) => a + b, 0) || 58;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch w-full">
       {/* Region Revenue Share */}
@@ -97,7 +107,7 @@ export function AnalyticsPanel() {
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 flex flex-col justify-center">
-          <DonutChart />
+          <DonutChart data={analytics.regionalDistribution} />
         </CardContent>
       </Card>
 
@@ -117,20 +127,27 @@ export function AnalyticsPanel() {
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 space-y-2.5">
-          {TOP_WILAYAS.map((wilaya, i) => (
+          {analytics.topPerformers.map((wilaya, i) => (
             <div key={wilaya.id} className="flex items-center gap-3 p-1 rounded-xl hover:bg-muted/40 transition-colors">
-              <div className={cn(
-                'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0',
-                i === 0 ? 'bg-amber-500/10 text-amber-600' :
-                i === 1 ? 'bg-slate-500/10 text-slate-600' :
-                i === 2 ? 'bg-orange-500/10 text-orange-600' :
-                'bg-muted text-muted-foreground'
-              )}>
+              <div
+                className={cn(
+                  'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0',
+                  i === 0
+                    ? 'bg-amber-500/10 text-amber-600'
+                    : i === 1
+                    ? 'bg-slate-500/10 text-slate-600'
+                    : i === 2
+                    ? 'bg-orange-500/10 text-orange-600'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
                 #{i + 1}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground truncate">{wilaya.name} ({wilaya.code})</span>
+                  <span className="text-xs font-semibold text-foreground truncate">
+                    {wilaya.name} ({wilaya.code})
+                  </span>
                   <span className="text-xs font-bold text-foreground">{wilaya.ordersMonth} orders</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-0.5">
@@ -153,16 +170,16 @@ export function AnalyticsPanel() {
             <div>
               <CardTitle className="text-base font-bold tracking-tight">Performance Breakdown</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                58 Wilayas operational ratings
+                {totalWilayasCount} Wilayas operational ratings
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 flex flex-col justify-between">
           <div className="grid grid-cols-2 gap-3.5 h-full">
-            {(Object.entries(PERFORMANCE_COUNTS) as [string, number][]).map(([key, count]) => {
+            {(Object.entries(analytics.performanceCounts) as [string, number][]).map(([key, count]) => {
               const cfg = PERFORMANCE_CONFIG[key as keyof typeof PERFORMANCE_CONFIG];
-              const pct = Math.round((count / 58) * 100);
+              const pct = totalWilayasCount > 0 ? Math.round((count / totalWilayasCount) * 100) : 0;
               return (
                 <div
                   key={key}
@@ -178,18 +195,12 @@ export function AnalyticsPanel() {
                         {cfg.label}
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold text-muted-foreground/80">
-                      {pct}%
-                    </span>
+                    <span className="text-[10px] font-semibold text-muted-foreground/80">{pct}%</span>
                   </div>
 
                   <div className="mt-3 flex items-baseline justify-between">
-                    <span className={cn('text-3xl font-extrabold tracking-tight', cfg.textColor)}>
-                      {count}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      wilayas
-                    </span>
+                    <span className={cn('text-3xl font-extrabold tracking-tight', cfg.textColor)}>{count}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">wilayas</span>
                   </div>
                 </div>
               );

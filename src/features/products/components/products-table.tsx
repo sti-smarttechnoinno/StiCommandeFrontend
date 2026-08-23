@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -22,12 +22,25 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useProductsStore } from '../store';
-import { filterProducts, sortProducts, formatCurrency } from '../utils';
-import { mockProducts } from '../mock-data';
+import { formatCurrency } from '../utils';
+import { productsService, type ProductData } from '@/services/products';
 import { ProductStatusBadge, CategoryBadge, OperatorBadge } from './product-badges';
 import { ProductFilters } from './product-filters';
 import { BulkActions } from './bulk-actions';
-import { Package, ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import {
+  Package,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+  Loader2,
+  Tag,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +49,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import type { ExtendedProduct, SortField } from '../types';
+import type { SortField } from '../types';
 
 interface ProductsTableProps {
   onViewProduct: (id: string) => void;
@@ -44,17 +57,41 @@ interface ProductsTableProps {
 
 export function ProductsTable({ onViewProduct }: ProductsTableProps) {
   const { filters, selectedIds, sort, page, pageSize, toggleSelect, selectAll, clearSelection, setSort, setPage, setPageSize } = useProductsStore();
+  const [products, setProducts] = useState<ProductData[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const processedData = useMemo(() => {
-    const filtered = filterProducts(mockProducts, filters);
-    return sortProducts(filtered, sort.field, sort.direction);
-  }, [filters, sort]);
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = {};
+      if (filters.search) params.search = filters.search;
+      if (filters.category.length) params.category = filters.category;
+      if (filters.operator.length) params.operator = filters.operator;
+      if (filters.stockStatus && filters.stockStatus !== 'all') params.stockStatus = filters.stockStatus;
+      if (filters.productStatus.length) params.productStatus = filters.productStatus;
+      if (filters.dateRange.start) params.dateStart = filters.dateRange.start.toISOString();
+      if (filters.dateRange.end) params.dateEnd = filters.dateRange.end.toISOString();
+      params.sortField = sort.field;
+      params.sortDirection = sort.direction;
+      params.page = page + 1;
+      params.pageSize = pageSize;
 
-  const pageCount = Math.ceil(processedData.length / pageSize);
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return processedData.slice(start, start + pageSize);
-  }, [processedData, page, pageSize]);
+      const result = await productsService.list(params);
+      setProducts(result.data);
+      setTotal(result.total);
+    } catch {
+      toast.error('Failed to load products from server');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, sort, page, pageSize]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const pageCount = Math.ceil(total / pageSize);
 
   const handleSort = useCallback(
     (field: SortField) => {
@@ -67,7 +104,17 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
     [sort, setSort]
   );
 
-  const allPageIds = useMemo(() => paginatedData.map((p) => p.id), [paginatedData]);
+  const handleDeleteProduct = useCallback(async (id: string, name: string) => {
+    try {
+      await productsService.delete(id);
+      toast.success(`Deleted ${name}`);
+      fetchProducts();
+    } catch {
+      toast.error(`Failed to delete ${name}`);
+    }
+  }, [fetchProducts]);
+
+  const allPageIds = useMemo(() => products.map((p) => p.id), [products]);
   const allSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.has(id));
   const someSelected = allPageIds.some((id) => selectedIds.has(id)) && !allSelected;
 
@@ -79,7 +126,7 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
     }
   }, [allSelected, allPageIds, selectAll, clearSelection]);
 
-  const columns = useMemo<ColumnDef<ExtendedProduct>[]>(
+  const columns = useMemo<ColumnDef<ProductData>[]>(
     () => [
       {
         id: 'select',
@@ -108,7 +155,7 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
             className="flex items-center gap-1 hover:text-foreground transition-colors font-bold"
             onClick={() => handleSort('sku')}
           >
-            SKU
+            SKU / Code
             {sort.field === 'sku' ? (
               sort.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
             ) : (
@@ -118,7 +165,7 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
         ),
         cell: ({ row }) => (
           <span className="font-bold font-mono text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-            {row.original.sku}
+            {row.original.sku || row.original.code}
           </span>
         ),
         size: 110,
@@ -151,7 +198,7 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
                 {row.original.name}
               </span>
               <span className="text-[11px] text-muted-foreground block truncate">
-                {row.original.warehouse}
+                {row.original.warehouse || 'Main Warehouse'}
               </span>
             </div>
           </div>
@@ -171,6 +218,27 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
         size: 90,
       },
       {
+        accessorKey: 'nominalPrice',
+        header: 'Nominal Price',
+        cell: ({ row }) => (
+          <span className="text-xs font-medium text-muted-foreground">
+            {formatCurrency(row.original.nominalPrice || row.original.price)}
+          </span>
+        ),
+        size: 110,
+      },
+      {
+        accessorKey: 'discountPercent',
+        header: 'Discount %',
+        cell: ({ row }) => (
+          <Badge variant="outline" className="text-xs font-semibold border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
+            <Tag className="h-3 w-3 mr-1" />
+            {row.original.discountPercent}%
+          </Badge>
+        ),
+        size: 90,
+      },
+      {
         accessorKey: 'price',
         header: () => (
           <button
@@ -186,7 +254,9 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
           </button>
         ),
         cell: ({ row }) => (
-          <span className="font-bold text-xs text-foreground tracking-tight">{formatCurrency(row.original.sellingPrice)}</span>
+          <span className="font-bold text-xs text-emerald-600 dark:text-emerald-400 tracking-tight">
+            {formatCurrency(row.original.sellingPrice)}
+          </span>
         ),
         size: 110,
       },
@@ -206,8 +276,8 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
           </button>
         ),
         cell: ({ row }) => {
-          const stock = row.original.stock;
-          const minStock = row.original.minStock;
+          const stock = row.original.stockQuantity ?? row.original.stock ?? 0;
+          const minStock = row.original.minStock ?? 100;
           const maxStock = Math.max(minStock * 3, stock);
           const ratio = maxStock > 0 ? (stock / maxStock) * 100 : 0;
           return (
@@ -245,7 +315,7 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
             )}
           </button>
         ),
-        cell: ({ row }) => <ProductStatusBadge product={row.original} />,
+        cell: ({ row }) => <ProductStatusBadge product={row.original as any} />,
         size: 110,
       },
       {
@@ -280,7 +350,7 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
                   <Pencil className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Edit Product
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => toast.error(`Deleted ${row.original.name}`)}>
+                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteProduct(row.original.id, row.original.name)}>
                   <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Product
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -292,11 +362,11 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
         enableHiding: false,
       },
     ],
-    [sort, handleSort, selectedIds, allPageIds, allSelected, someSelected, handleSelectAllPage, toggleSelect, onViewProduct]
+    [sort, handleSort, selectedIds, allPageIds, allSelected, someSelected, handleSelectAllPage, toggleSelect, onViewProduct, handleDeleteProduct]
   );
 
   const table = useReactTable({
-    data: paginatedData,
+    data: products,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -325,11 +395,11 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold tracking-tight">Products Inventory</CardTitle>
                 <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2 py-0.5">
-                  {processedData.length} Products
+                  {total} Products
                 </Badge>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Search, filter, and manage catalog items and stock levels
+                Search, filter, and manage catalog items, nominal prices, discounts, and selling rates
               </CardDescription>
             </div>
           </div>
@@ -364,7 +434,16 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
             </TableHeader>
 
             <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs font-medium">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      Loading live product catalog...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length > 0 ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
@@ -396,13 +475,13 @@ export function ProductsTable({ onViewProduct }: ProductsTableProps) {
           <span className="text-muted-foreground">
             Showing{' '}
             <strong className="text-foreground font-semibold">
-              {page * pageSize + 1}
+              {total === 0 ? 0 : page * pageSize + 1}
             </strong>{' '}
             to{' '}
             <strong className="text-foreground font-semibold">
-              {Math.min((page + 1) * pageSize, processedData.length)}
+              {Math.min((page + 1) * pageSize, total)}
             </strong>{' '}
-            of <strong className="text-foreground font-semibold">{processedData.length}</strong> products
+            of <strong className="text-foreground font-semibold">{total}</strong> products
           </span>
 
           <div className="flex items-center gap-1">

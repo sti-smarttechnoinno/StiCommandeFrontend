@@ -14,6 +14,7 @@ export const useReportsStore = create<ReportsState>((set) => ({
   selectedReportType: '',
   selectedStatus: '',
   isCreateDialogOpen: false,
+  refreshKey: 0,
 
   setDateRange: (dateRange) => set({ dateRange }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
@@ -25,6 +26,7 @@ export const useReportsStore = create<ReportsState>((set) => ({
   setSelectedReportType: (selectedReportType) => set({ selectedReportType }),
   setSelectedStatus: (selectedStatus) => set({ selectedStatus }),
   setCreateDialogOpen: (isCreateDialogOpen) => set({ isCreateDialogOpen }),
+  triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
   resetFilters: () =>
     set({
       searchQuery: '',

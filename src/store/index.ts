@@ -1,26 +1,72 @@
 import { create } from 'zustand';
+import { authService } from '@/services/auth';
+
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
 
 interface AuthState {
-  user: { id: string; name: string; email: string; role: string; avatar?: string } | null;
+  user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (user: AuthState['user'], token: string, refreshToken: string) => void;
-  logout: () => void;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  fetchUser: () => Promise<void>;
+  setUser: (user: AuthUser, token: string) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
+  token: typeof window !== 'undefined' ? localStorage.getItem('access_token') : null,
   isAuthenticated: false,
-  login: (user, token, refreshToken) => {
-    localStorage.setItem('access_token', token);
-    localStorage.setItem('refresh_token', refreshToken);
-    set({ user, token, isAuthenticated: true });
+  isLoading: false,
+
+  login: async (email: string, password: string) => {
+    set({ isLoading: true });
+    try {
+      const { user, token } = await authService.login(email, password);
+      localStorage.setItem('access_token', token);
+      set({ user, token, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
   },
-  logout: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    set({ user: null, token: null, isAuthenticated: false });
+
+  logout: async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Ignore errors on logout
+    } finally {
+      localStorage.removeItem('access_token');
+      set({ user: null, token: null, isAuthenticated: false });
+    }
+  },
+
+  fetchUser: async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      set({ isAuthenticated: false, isLoading: false });
+      return;
+    }
+    try {
+      const user = await authService.getMe();
+      set({ user, token, isAuthenticated: true, isLoading: false });
+    } catch {
+      localStorage.removeItem('access_token');
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+    }
+  },
+
+  setUser: (user, token) => {
+    localStorage.setItem('access_token', token);
+    set({ user, token, isAuthenticated: true });
   },
 }));
 

@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -22,8 +24,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useClientsStore } from '../store';
-import { filterClients, sortClients, formatCurrency, formatDate } from '../utils';
-import { mockClients } from '../mock-data';
+import { formatCurrency } from '../utils';
+import { clientsService, type ClientData } from '@/services/clients';
 import { ClientStatusBadge, ClientTypeBadge } from './client-badges';
 import { ClientFilters } from './client-filters';
 import { BulkActions } from './bulk-actions';
@@ -39,9 +41,10 @@ import {
   ShoppingCart,
   Trash2,
   MoreHorizontal,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ExtendedClient, SortField } from '../types';
+import type { SortField } from '../types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,19 +54,52 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function ClientsTable() {
+  const router = useRouter();
   const { filters, selectedIds, sort, page, pageSize, toggleSelect, selectAll, clearSelection, setSort, setPage, setPageSize } = useClientsStore();
+  const [clients, setClients] = useState<ClientData[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const processedData = useMemo(() => {
-    const filtered = filterClients(mockClients, filters);
-    const sorted = sortClients(filtered, sort.field, sort.direction);
-    return sorted;
-  }, [filters, sort]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
 
-  const pageCount = Math.ceil(processedData.length / pageSize);
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return processedData.slice(start, start + pageSize);
-  }, [processedData, page, pageSize]);
+    const fetchClients = async () => {
+      try {
+        const params: Record<string, string | string[] | number> = {};
+
+        if (filters.search) params.search = filters.search;
+        if (filters.status.length) params.status = filters.status;
+        if (filters.region.length) params.region = filters.region;
+        if (filters.delegate.length) params.delegate = filters.delegate;
+        if (filters.clientType.length) params.clientType = filters.clientType;
+        if (filters.dateRange.start) params.dateStart = filters.dateRange.start.toISOString();
+        if (filters.dateRange.end) params.dateEnd = filters.dateRange.end.toISOString();
+        params.sortField = sort.field === 'delegateName' ? 'region' : sort.field;
+        params.sortDirection = sort.direction;
+        params.page = page + 1;
+        params.pageSize = pageSize;
+
+        const result = await clientsService.list(params);
+        if (!cancelled) {
+          setClients(result.data);
+          setTotal(result.total);
+        }
+      } catch {
+        if (!cancelled) {
+          toast.error('Failed to load clients');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchClients();
+    return () => { cancelled = true; };
+  }, [filters, sort, page, pageSize]);
+
+  const processedData = clients;
+  const pageCount = Math.ceil(total / pageSize);
 
   const handleSort = useCallback(
     (field: SortField) => {
@@ -76,7 +112,7 @@ export function ClientsTable() {
     [sort, setSort]
   );
 
-  const allPageIds = useMemo(() => paginatedData.map((c) => c.id), [paginatedData]);
+  const allPageIds = useMemo(() => processedData.map((c) => c.id), [processedData]);
   const allSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.has(id));
   const someSelected = allPageIds.some((id) => selectedIds.has(id)) && !allSelected;
 
@@ -88,7 +124,7 @@ export function ClientsTable() {
     }
   }, [allSelected, allPageIds, selectAll, clearSelection]);
 
-  const columns = useMemo<ColumnDef<ExtendedClient>[]>(
+  const columns = useMemo<ColumnDef<ClientData>[]>(
     () => [
       {
         id: 'select',
@@ -126,7 +162,7 @@ export function ClientsTable() {
           </button>
         ),
         cell: ({ row }) => (
-          <span className="font-bold font-mono text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-md">
+          <span className="font-mono text-xs font-semibold text-foreground/80">
             {row.original.clientCode}
           </span>
         ),
@@ -274,128 +310,123 @@ export function ClientsTable() {
         header: '',
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-              onClick={() => toast.info(`View client ${row.original.name}`)}
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </Button>
-
+            <Link href={`/clients/${row.original.id}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                title="View Client Profile"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
             <DropdownMenu>
-              <DropdownMenuTrigger className="outline-none">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
+              <DropdownMenuTrigger>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem onClick={() => toast.info(`Edit ${row.original.name}`)}>
-                  <Pencil className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Edit Client
+              <DropdownMenuContent align="end" className="w-40 text-xs">
+                <DropdownMenuItem className="gap-2" onClick={() => router.push(`/clients/${row.original.id}`)}>
+                  <Eye className="h-3.5 w-3.5" /> View Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info(`New order for ${row.original.name}`)}>
-                  <ShoppingCart className="h-3.5 w-3.5 mr-2 text-blue-600" /> Create Order
+                <DropdownMenuItem className="gap-2" onClick={() => toast.info(`Client details for ${row.original.name}`)}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit Client
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2">
+                  <ShoppingCart className="h-3.5 w-3.5" /> New Order
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => toast.error(`Deleted ${row.original.name}`)}>
-                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Client
+                <DropdownMenuItem className="gap-2 text-rose-600 dark:text-rose-400">
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         ),
-        size: 70,
-        enableSorting: false,
-        enableHiding: false,
+        size: 80,
       },
     ],
-    [sort, handleSort, selectedIds, allPageIds, allSelected, someSelected, handleSelectAllPage, toggleSelect]
+    [
+      allSelected,
+      someSelected,
+      selectedIds,
+      sort,
+      handleSelectAllPage,
+      toggleSelect,
+      handleSort,
+    ]
   );
 
   const table = useReactTable({
-    data: paginatedData,
+    data: processedData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
     pageCount,
     state: {
-      pagination: { pageIndex: page, pageSize },
+      pagination: {
+        pageIndex: page,
+        pageSize,
+      },
     },
-    onPaginationChange: (updater) => {
-      const newPagination = typeof updater === 'function' ? updater({ pageIndex: page, pageSize }) : updater;
-      setPage(newPagination.pageIndex);
-      if (newPagination.pageSize !== pageSize) setPageSize(newPagination.pageSize);
-    },
-    manualPagination: true,
   });
 
   return (
-    <Card className="border border-border/40 shadow-xs rounded-2xl overflow-hidden w-full">
-      {/* Integrated Combined Header & Filters */}
-      <CardHeader className="pb-3 border-b border-border/40 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-              <Users className="h-4.5 w-4.5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold tracking-tight">Clients List</CardTitle>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2 py-0.5">
-                  {processedData.length} Clients
-                </Badge>
-              </div>
-              <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Search, filter, and manage client distribution data
-              </CardDescription>
-            </div>
+    <Card className="border border-border/40 shadow-xs bg-card overflow-hidden">
+      <CardHeader className="p-4 sm:p-5 border-b border-border/40 space-y-3 bg-muted/20">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              Clients List
+              <Badge variant="secondary" className="rounded-full text-xs font-semibold px-2">
+                {total}
+              </Badge>
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-0.5">
+              Filter, search, and manage your client portfolio.
+            </CardDescription>
           </div>
-        </div>
 
-        {/* Integrated Filter Component */}
-        <div className="pt-2 border-t border-border/30">
           <ClientFilters />
         </div>
+
+        <BulkActions />
       </CardHeader>
 
-      {/* Bulk Actions */}
-      <BulkActions />
-
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
+          {loading && (
+            <div className="absolute inset-0 bg-background/50 backdrop-blur-2xs flex items-center justify-center z-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
           <Table>
-            <TableHeader className="bg-muted/30">
-              {table.getHeaderGroups().map((hg) => (
-                <TableRow key={hg.id} className="hover:bg-transparent border-b border-border/30">
-                  {hg.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3.5 px-4"
-                      style={{ width: header.getSize() }}
-                    >
+            <TableHeader className="bg-muted/40 text-[11px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/40">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} style={{ width: header.getSize() }} className="py-3 px-3">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
                 </TableRow>
               ))}
             </TableHeader>
-
             <TableBody>
               {table.getRowModel().rows.length > 0 ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
                     className={cn(
-                      'hover:bg-muted/40 transition-colors border-b border-border/30 last:border-0',
-                      selectedIds.has(row.original.id) && 'bg-primary/5'
+                      'hover:bg-muted/30 transition-colors border-b border-border/30 text-xs',
+                      selectedIds.has(row.original.id) && 'bg-primary/5 hover:bg-primary/10'
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-3.5 px-4 align-middle">
+                      <TableCell key={cell.id} className="py-2.5 px-3">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -403,8 +434,8 @@ export function ClientsTable() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground text-xs">
-                    No clients found matching your filters.
+                  <TableCell colSpan={columns.length} className="h-36 text-center text-muted-foreground text-xs">
+                    No clients found. Try adjusting your filters.
                   </TableCell>
                 </TableRow>
               )}
@@ -417,13 +448,13 @@ export function ClientsTable() {
           <span className="text-muted-foreground">
             Showing{' '}
             <strong className="text-foreground font-semibold">
-              {page * pageSize + 1}
+              {total === 0 ? 0 : page * pageSize + 1}
             </strong>{' '}
             to{' '}
             <strong className="text-foreground font-semibold">
-              {Math.min((page + 1) * pageSize, processedData.length)}
+              {Math.min((page + 1) * pageSize, total)}
             </strong>{' '}
-            of <strong className="text-foreground font-semibold">{processedData.length}</strong> clients
+            of <strong className="text-foreground font-semibold">{total}</strong> clients
           </span>
 
           <div className="flex items-center gap-1">

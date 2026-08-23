@@ -12,8 +12,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useReportsStore } from '../store';
+import { reportsService } from '@/services/reports';
 import { toast } from 'sonner';
-import { FileText, X } from 'lucide-react';
+import { FileText, X, Loader2 } from 'lucide-react';
 
 const REPORT_TYPES = [
   { value: 'sales', label: 'Sales Report' },
@@ -33,19 +34,37 @@ const FORMATS = [
 ];
 
 export function ReportDialog() {
-  const { isCreateDialogOpen, setCreateDialogOpen } = useReportsStore();
+  const { isCreateDialogOpen, setCreateDialogOpen, triggerRefresh } = useReportsStore();
   const [name, setName] = useState('');
-  const [type, setType] = useState('');
+  const [type, setType] = useState('sales');
+  const [period, setPeriod] = useState('this_month');
   const [format, setFormat] = useState('pdf');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    toast.success('Report generation started', {
-      description: `"${name}" is being generated as ${format.toUpperCase()}`,
-    });
-    setCreateDialogOpen(false);
-    setName('');
-    setType('');
-    setFormat('pdf');
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+
+    setSubmitting(true);
+    try {
+      await reportsService.createReport({
+        name: name.trim(),
+        type,
+        period,
+        format,
+      });
+
+      toast.success('Report Created Successfully!', {
+        description: `"${name}" has been generated as ${format.toUpperCase()}`,
+      });
+
+      triggerRefresh();
+      setCreateDialogOpen(false);
+      setName('');
+    } catch {
+      toast.error('Failed to generate report');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -125,11 +144,11 @@ export function ReportDialog() {
               Cancel
             </Button>
             <Button
-              className="flex-1 h-12 rounded-xl text-sm font-semibold bg-[#D71920] hover:bg-[#B81419] text-white shadow-lg shadow-[#D71920]/20"
+              className="flex-1 h-12 rounded-xl text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
               onClick={handleSubmit}
-              disabled={!name || !type}
+              disabled={submitting || !name.trim()}
             >
-              Generate Report
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : 'Generate Report'}
             </Button>
           </div>
         </DialogFooter>

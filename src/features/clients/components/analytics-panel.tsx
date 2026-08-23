@@ -1,42 +1,43 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '../utils';
-import { Globe, CreditCard, Trophy } from 'lucide-react';
+import { clientsService } from '@/services/clients';
+import { Globe, CreditCard, Trophy, Loader2 } from 'lucide-react';
 
-const REGIONAL_DATA = [
-  { name: 'Algiers', value: 820, color: '#2563EB' },
-  { name: 'Oran', value: 445, color: '#22C55E' },
-  { name: 'Constantine', value: 380, color: '#8B5CF6' },
-  { name: 'Annaba', value: 290, color: '#F59E0B' },
-  { name: 'Batna', value: 245, color: '#EF4444' },
-  { name: 'Others', value: 278, color: '#6B7280' },
-];
+interface RegionalData {
+  name: string;
+  value: number;
+  color: string;
+}
 
-const CREDIT_USAGE = [
-  { label: 'Telecom Plus DZ', limit: 5000000, used: 3200000, color: '#2563EB' },
-  { label: 'Mobilis Store Algiers', limit: 2500000, used: 1800000, color: '#22C55E' },
-  { label: 'Optimum Telecom', limit: 1000000, used: 850000, color: '#F59E0B' },
-  { label: 'Djezzy Distribution', limit: 2500000, used: 2100000, color: '#EF4444' },
-];
+interface CreditUsage {
+  label: string;
+  limit: number;
+  used: number;
+  color: string;
+}
 
-const TOP_DELEGATES = [
-  { name: 'Yacine B.', orders: 156, revenue: 12500000, completion: 96 },
-  { name: 'Amine K.', orders: 142, revenue: 11200000, completion: 94 },
-  { name: 'Sofiane M.', orders: 128, revenue: 9800000, completion: 91 },
-  { name: 'Rachid T.', orders: 115, revenue: 8500000, completion: 89 },
-];
+interface TopDelegate {
+  name: string;
+  orders: number;
+  revenue: number;
+  completion: number;
+}
 
-function DonutChart() {
-  const total = REGIONAL_DATA.reduce((s, r) => s + r.value, 0);
+const COLORS = ['#2563EB', '#22C55E', '#8B5CF6', '#F59E0B', '#EF4444', '#6B7280'];
+
+function DonutChart({ data }: { data: RegionalData[] }) {
+  const total = data.reduce((s, r) => s + r.value, 0);
   let cumulativePercent = 0;
 
   return (
     <div className="flex items-center gap-4">
       <div className="relative w-28 h-28 flex-shrink-0">
         <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-          {REGIONAL_DATA.map((segment) => {
+          {data.map((segment) => {
             const percent = (segment.value / total) * 100;
             const dashArray = `${percent} ${100 - percent}`;
             const offset = -cumulativePercent;
@@ -63,7 +64,7 @@ function DonutChart() {
         </div>
       </div>
       <div className="flex-1 space-y-1.5">
-        {REGIONAL_DATA.map((region) => (
+        {data.map((region) => (
           <div key={region.name} className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: region.color }} />
             <span className="text-[11px] text-muted-foreground flex-1">{region.name}</span>
@@ -76,6 +77,46 @@ function DonutChart() {
 }
 
 export function AnalyticsPanel() {
+  const [regionalData, setRegionalData] = useState<RegionalData[]>([]);
+  const [creditUsage, setCreditUsage] = useState<CreditUsage[]>([]);
+  const [topDelegates, setTopDelegates] = useState<TopDelegate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    clientsService.getAnalytics().then((data) => {
+      setRegionalData(
+        data.regionalDistribution.map((r, i) => ({
+          ...r,
+          color: COLORS[i % COLORS.length],
+        }))
+      );
+      setCreditUsage(
+        data.creditUsage.map((c, i) => ({
+          label: c.name,
+          limit: c.limit,
+          used: c.used,
+          color: COLORS[i % COLORS.length],
+        }))
+      );
+      setTopDelegates(data.topDelegates);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="h-full border border-border/40 shadow-xs rounded-2xl overflow-hidden">
+            <CardContent className="flex items-center justify-center h-48">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch w-full">
       {/* Regional Distribution */}
@@ -94,7 +135,7 @@ export function AnalyticsPanel() {
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 flex flex-col justify-center">
-          <DonutChart />
+          <DonutChart data={regionalData} />
         </CardContent>
       </Card>
 
@@ -114,7 +155,7 @@ export function AnalyticsPanel() {
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 space-y-3">
-          {CREDIT_USAGE.map((item) => {
+          {creditUsage.map((item) => {
             const percent = Math.round((item.used / item.limit) * 100);
             return (
               <div key={item.label} className="space-y-1">
@@ -154,7 +195,7 @@ export function AnalyticsPanel() {
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-1 space-y-3">
-          {TOP_DELEGATES.map((delegate, i) => (
+          {topDelegates.map((delegate, i) => (
             <div key={delegate.name} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-muted/40 transition-colors">
               <div className={cn(
                 'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0',

@@ -1,22 +1,27 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { ProductStatus, ExtendedProduct } from '../types';
+import type { ExtendedProduct } from '../types';
 
-const STATUS_CONFIG: Record<ProductStatus, { label: string; style: string; dot: string }> = {
+const STATUS_CONFIG: Record<string, { label: string; style: string; dot: string }> = {
   active: {
     label: 'Active',
     style: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     dot: 'bg-emerald-500',
   },
+  inactive: {
+    label: 'Inactive',
+    style: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+    dot: 'bg-slate-400',
+  },
+  draft: {
+    label: 'Draft',
+    style: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    dot: 'bg-purple-500',
+  },
   low_stock: {
     label: 'Low Stock',
     style: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
     dot: 'bg-amber-500',
-  },
-  draft: {
-    label: 'Draft',
-    style: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
-    dot: 'bg-slate-400',
   },
   out_of_stock: {
     label: 'Out of Stock',
@@ -25,16 +30,17 @@ const STATUS_CONFIG: Record<ProductStatus, { label: string; style: string; dot: 
   },
 };
 
-function getProductStatus(product: ExtendedProduct): ProductStatus {
-  if (product.stock === 0) return 'out_of_stock';
-  if (product.stock < product.minStock) return 'low_stock';
-  if (product.status === 'inactive') return 'draft';
-  return 'active';
-}
+export function ProductStatusBadge({ product }: { product: Partial<ExtendedProduct> & { status?: string; stock?: number; minStock?: number; stockQuantity?: number } }) {
+  const stock = product.stockQuantity ?? product.stock ?? 0;
+  const minStock = product.minStock ?? 100;
+  let status = product.status || 'active';
 
-export function ProductStatusBadge({ product }: { product: ExtendedProduct }) {
-  const status = getProductStatus(product);
-  const cfg = STATUS_CONFIG[status];
+  if (status === 'active') {
+    if (stock === 0) status = 'out_of_stock';
+    else if (stock < minStock) status = 'low_stock';
+  }
+
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.active;
   return (
     <Badge
       variant="ghost"
@@ -60,7 +66,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string
 };
 
 export function CategoryBadge({ category }: { category: string }) {
-  const cfg = CATEGORY_CONFIG[category] || { label: category, color: 'text-slate-600', bg: 'bg-slate-500/10' };
+  const cfg = CATEGORY_CONFIG[category] || { label: category?.replace(/_/g, ' ') || 'Category', color: 'text-slate-600', bg: 'bg-slate-500/10' };
   return (
     <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider border-none w-fit', cfg.bg, cfg.color)}>
       {cfg.label}

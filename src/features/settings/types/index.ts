@@ -1,4 +1,4 @@
-export type SettingsTab = 'general' | 'company' | 'users' | 'security' | 'notifications' | 'localization' | 'integrations' | 'backup' | 'reports' | 'api' | 'appearance' | 'about';
+export type SettingsTab = 'general' | 'company' | 'catalog' | 'users' | 'security' | 'notifications' | 'localization' | 'integrations' | 'backup' | 'reports' | 'api' | 'appearance' | 'about';
 
 export interface SettingsState {
   activeTab: SettingsTab;
