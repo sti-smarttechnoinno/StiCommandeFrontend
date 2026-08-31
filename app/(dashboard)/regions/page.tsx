@@ -21,7 +21,7 @@ import { WilayaDrawer } from '@/features/regions/components/wilaya-drawer';
 import { CreateRegionDialog } from '@/features/regions/components/create-region-dialog';
 import { RegionsLoadingSkeleton } from '@/features/regions/components/loading-skeleton';
 import { RegionsEmptyState, RegionsErrorState } from '@/features/regions/components/error-states';
-import { regionsService } from '@/services/regions';
+import { regionsService, type RegionsAnalyticsResponse } from '@/services/regions';
 import type { RegionData } from '@/features/regions/types';
 import { Plus, Download, RefreshCw, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ export default function RegionsPage() {
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Friday, July 31, 2026');
   const [regions, setRegions] = useState<RegionData[]>([]);
+  const [analytics, setAnalytics] = useState<RegionsAnalyticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,8 +44,20 @@ export default function RegionsPage() {
   const fetchRegionsFromBackend = useCallback(async () => {
     try {
       setHasError(false);
-      const result = await regionsService.list();
-      setRegions(result.data || []);
+      const [listRes, analyticsRes] = await Promise.allSettled([
+        regionsService.list(),
+        regionsService.getAnalytics(),
+      ]);
+
+      if (listRes.status === 'fulfilled') {
+        setRegions(listRes.value.data || []);
+      } else {
+        setRegions([]);
+      }
+
+      if (analyticsRes.status === 'fulfilled') {
+        setAnalytics(analyticsRes.value);
+      }
     } catch {
       setRegions([]);
     } finally {
@@ -199,7 +212,7 @@ export default function RegionsPage() {
       {/* Bottom Section: Operations & Regional Summary (3 Column Grid Full Width) */}
       <div className="space-y-4 pt-4 border-t border-border/40">
         <h2 className="text-lg font-bold text-foreground tracking-tight">Regional Performance & Territory Summary</h2>
-        <AnalyticsPanel />
+        <AnalyticsPanel analytics={analytics} />
       </div>
 
       {/* Wilaya Drawer */}

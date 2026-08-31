@@ -17,7 +17,11 @@ export interface RegionsKpiResponse {
 }
 
 export interface RegionsAnalyticsResponse {
-  regionalDistribution: { name: string; value: number; color?: string }[];
+  regionalRevenue: { name: string; value: number; color?: string }[];
+  totalRevenue: number;
+  topLeaders: { name: string; region: string; orders: number; revenue: number; completion: number }[];
+  wilayaStatus: { label: string; count: number; color: string; textColor: string; bgColor: string }[];
+  totalWilayas: number;
 }
 
 export interface CreateRegionParams {
