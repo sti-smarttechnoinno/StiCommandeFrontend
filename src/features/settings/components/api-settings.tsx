@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 export function ApiSettings() {
   const [apiKey] = useState('sk_live_********************3f8a');
   const [secretKey] = useState('sk_secret_********************9d2c');
-  const [webhookUrl] = useState('https://erp.eststar.dz/api/webhooks');
+  const [webhookUrl] = useState('https://erp.sti.dz/api/webhooks');
 
   const copyToClipboard = (val: string, label: string) => {
     navigator.clipboard.writeText(val);
@@ -30,8 +30,8 @@ export function ApiSettings() {
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">API Base URL</label>
             <div className="flex gap-2">
-              <Input value="https://erp.eststar.dz/api/v1" readOnly className="h-11 rounded-xl border-border/60 font-mono text-xs" />
-              <Button variant="outline" size="sm" className="h-11 px-3 rounded-xl" onClick={() => copyToClipboard('https://erp.eststar.dz/api/v1', 'API URL')}>
+              <Input value="https://erp.sti.dz/api/v1" readOnly className="h-11 rounded-xl border-border/60 font-mono text-xs" />
+              <Button variant="outline" size="sm" className="h-11 px-3 rounded-xl" onClick={() => copyToClipboard('https://erp.sti.dz/api/v1', 'API URL')}>
                 <Copy className="h-4 w-4" />
               </Button>
             </div>

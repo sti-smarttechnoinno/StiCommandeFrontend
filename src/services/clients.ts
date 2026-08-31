@@ -30,7 +30,7 @@ interface ClientsResponse {
   totalPages: number;
 }
 
-interface KpiResponse {
+export interface KpiResponse {
   totalClients: number;
   activeClients: number;
   inactiveClients: number;
@@ -44,6 +44,14 @@ interface KpiResponse {
     outstandingCredit: number;
     ordersThisMonth: number;
     totalRevenue: number;
+  };
+  sparklines?: {
+    totalClients?: number[];
+    activeClients?: number[];
+    inactiveClients?: number[];
+    outstandingCredit?: number[];
+    ordersThisMonth?: number[];
+    totalRevenue?: number[];
   };
 }
 

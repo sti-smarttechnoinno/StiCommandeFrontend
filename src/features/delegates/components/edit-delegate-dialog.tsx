@@ -271,7 +271,7 @@ export function EditDelegateDialog({
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="delegate@eststar.dz"
+                      placeholder="delegate@sti.dz"
                       className="pl-10 h-10 text-xs bg-background rounded-xl border-border/70 focus:ring-primary/20"
                       required
                     />

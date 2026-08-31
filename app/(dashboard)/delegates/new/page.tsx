@@ -58,7 +58,7 @@ export default function NewDelegatePage() {
                 Add New Delegate
               </h1>
               <p className="text-sm text-muted-foreground">
-                Onboard new field sales delegate into ESTSTAR distribution network.
+                Onboard new field sales delegate into STI distribution network.
               </p>
             </div>
           </div>

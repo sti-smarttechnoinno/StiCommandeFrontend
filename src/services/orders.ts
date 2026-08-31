@@ -52,6 +52,17 @@ export interface OrderKpis {
   validatedOrders: number;
   deliveredOrders: number;
   totalRevenue: number;
+  balance?: number;
+  ordersGrowth?: number;
+  revenueGrowth?: number;
+  pendingGrowth?: number;
+  validatedGrowth?: number;
+  deliveredGrowth?: number;
+  ordersSparkline?: number[];
+  revenueSparkline?: number[];
+  pendingSparkline?: number[];
+  validatedSparkline?: number[];
+  deliveredSparkline?: number[];
 }
 
 export const ordersService = {

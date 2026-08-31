@@ -73,7 +73,7 @@ export function HeroIllustration() {
           />
         </g>
 
-        {/* RIGHT: MONITOR WITH ESTSTAR ERP DASHBOARD */}
+        {/* RIGHT: MONITOR WITH STI ERP DASHBOARD */}
         <g transform="translate(500, 100)" filter="url(#softShadow)">
           <rect x="55" y="195" width="40" height="25" fill="#94A3B8" rx="2" />
           <rect x="35" y="215" width="80" height="8" fill="#64748B" rx="4" />
@@ -151,7 +151,7 @@ export function HeroIllustration() {
           <path d="M -5 20 L 105 20 L 100 4 L 0 4 Z" fill="url(#primaryGradient)" />
           <rect x="12" y="40" width="30" height="50" rx="4" fill="#EFF6FF" stroke="#93C5FD" strokeWidth="1" />
           <rect x="52" y="45" width="36" height="30" rx="4" fill="#F1F5F9" />
-          <text x="50" y="16" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#FFFFFF">ESTSTAR STORE</text>
+          <text x="50" y="16" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#FFFFFF">STI STORE</text>
           <rect x="88" y="70" width="14" height="14" rx="2" fill="#D97706" opacity="0.8" />
           <rect x="92" y="58" width="12" height="12" rx="2" fill="#B45309" opacity="0.8" />
         </g>
@@ -169,7 +169,7 @@ export function HeroIllustration() {
           <circle cx="18" cy="42" r="3" fill="#94A3B8" />
           <circle cx="58" cy="42" r="8" fill="#1E293B" />
           <circle cx="58" cy="42" r="3" fill="#94A3B8" />
-          <text x="24" y="24" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#D71920">ESTSTAR</text>
+          <text x="24" y="24" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#D71920">STI</text>
         </motion.g>
 
         <g transform="translate(245, 365)">

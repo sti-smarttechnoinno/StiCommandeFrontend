@@ -26,14 +26,14 @@ export default function LoginPage() {
   if (!mounted || isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col justify-between selection:bg-[#D71920]/20 selection:text-[#D71920] relative">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col justify-between selection:bg-[#ED1C24]/20 selection:text-[#ED1C24] relative overflow-hidden">
       {/* Background Mesh Glow */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#D71920]/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#2563EB]/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ED1C24]/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#ED1C24]/3 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Main Layout Container */}
       <main className="flex-1 flex items-center justify-center p-4 lg:p-8 my-auto">
-        <div className="w-full max-w-[1540px] flex items-center justify-between gap-8 lg:gap-12 flex-wrap lg:flex-nowrap">
+        <div className="w-full max-w-[1280px] flex items-center justify-center lg:justify-between gap-8 lg:gap-12 flex-wrap lg:flex-nowrap">
           {/* Left Branding Showcase (55% Width, Max 720px) */}
           <BrandingSection />
 

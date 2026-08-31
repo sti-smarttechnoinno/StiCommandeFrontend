@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ESTSTAR Distribution - ERP Dashboard",
+  title: "STI Distribution - ERP Dashboard",
   description: "Enterprise ERP dashboard for telecommunications distribution management",
+  icons: {
+    icon: "/assets/logo-sti.png",
+    apple: "/assets/logo-sti.png",
+  },
 };
 
 export default function RootLayout({

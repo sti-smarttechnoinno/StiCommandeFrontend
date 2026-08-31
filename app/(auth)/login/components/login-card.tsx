@@ -56,8 +56,7 @@ export const LoginCard = memo(function LoginCard() {
       setErrorMessage(null);
 
       try {
-        const email = `${data.username}@eststar.dz`;
-        await login(email, data.password);
+        await login(data.username.trim(), data.password);
 
         setIsSuccess(true);
         toast.success('Authentication successful', {
@@ -100,8 +99,8 @@ export const LoginCard = memo(function LoginCard() {
           <div className="flex flex-col items-center justify-center text-center space-y-2 mb-2">
             <div className="w-12 h-12 relative flex items-center justify-center mb-1">
               <Image
-                src="/assets/logo.png"
-                alt="ESTSTAR Logo"
+                src="/assets/logo-sti.png"
+                alt="STI Logo"
                 width={48}
                 height={48}
                 className="object-contain"
@@ -110,10 +109,10 @@ export const LoginCard = memo(function LoginCard() {
             </div>
 
             <h2 className="text-2xl font-bold text-foreground tracking-tight leading-tight">
-              Welcome Back
+              Espace de Connexion
             </h2>
             <p className="text-xs text-muted-foreground max-w-[300px] leading-relaxed mx-auto">
-              Sign in to continue to ESTSTAR ERP
+              Plateforme Sécurisée de Distribution Ooredoo
             </p>
           </div>
 

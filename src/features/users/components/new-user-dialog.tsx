@@ -23,7 +23,7 @@ export function NewUserDialog() {
   const [wilaya, setWilaya] = useState('16 - Alger');
   const [role, setRole] = useState('administrator');
   const [department, setDepartment] = useState('Commercial Operations');
-  const [password, setPassword] = useState('EstStar2026!');
+  const [password, setPassword] = useState('Sti2026!');
   const [forcePasswordChange, setForcePasswordChange] = useState(true);
 
   const handleSubmit = async () => {
@@ -81,7 +81,7 @@ export function NewUserDialog() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-foreground">Email *</label>
-                <Input type="email" placeholder="user@eststar.dz" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl border-border/60 text-xs" />
+                <Input type="email" placeholder="user@sti.dz" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl border-border/60 text-xs" />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-foreground">Phone</label>

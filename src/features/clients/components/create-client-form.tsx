@@ -90,7 +90,7 @@ export function getRegionForWilaya(wilayaStr: string, realRegions: RegionData[] 
           (w) =>
             (matchCode && (w.code === matchCode || w.code === matchCode.padStart(2, '0'))) ||
             w.name.toLowerCase() === cleanName ||
-            w.wilaya_name?.toLowerCase() === cleanName
+            (w as any).wilaya_name?.toLowerCase() === cleanName
         );
         if (found) return reg.name;
       }
@@ -686,11 +686,11 @@ export function CreateClientForm() {
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-border/60 p-1">
-                    <SelectItem value="unassigned" textValue="No delegate assigned" className="text-xs font-semibold py-2 rounded-lg cursor-pointer text-amber-600 bg-amber-500/10 mb-1">
+                    <SelectItem value="unassigned" className="text-xs font-semibold py-2 rounded-lg cursor-pointer text-amber-600 bg-amber-500/10 mb-1">
                       🚫 No delegate assigned (Unassigned)
                     </SelectItem>
                     {(delegatesList.length > 0 ? delegatesList : DELEGATES_LIST).map((d) => (
-                      <SelectItem key={d.id} value={d.id} textValue={d.name} className="text-xs font-semibold py-2 rounded-lg cursor-pointer">
+                      <SelectItem key={d.id} value={d.id} className="text-xs font-semibold py-2 rounded-lg cursor-pointer">
                         {d.name} ({d.region} Region)
                       </SelectItem>
                     ))}

@@ -121,7 +121,7 @@ function buildWilayaRows(): WilayaRow[] {
         ? {
             name: DELEGATE_NAMES[i % DELEGATE_NAMES.length],
             phone: `+213 ${5 + (i % 4)}${String(10000000 + i * 137).slice(0, 8)}`,
-            email: `${DELEGATE_NAMES[i % DELEGATE_NAMES.length].toLowerCase().replace(/\s+/g, '.')}@eststar.dz`,
+            email: `${DELEGATE_NAMES[i % DELEGATE_NAMES.length].toLowerCase().replace(/\s+/g, '.')}@sti.dz`,
             avatar: DELEGATE_NAMES[i % DELEGATE_NAMES.length].split(' ').map(n => n[0]).join(''),
             isOnline: i % 3 !== 0,
             role: i % 5 === 0 ? 'Regional Delegate' : 'Area Delegate',

@@ -17,7 +17,7 @@ function generateDelegate(index: number, online: boolean) {
     id: `del-${index + 1}`,
     name,
     phone: `+213 ${5 + (index % 4)}${String(10000000 + index * 137).slice(0, 8)}`,
-    email: `${name.toLowerCase().replace(/\s+/g, '.')}@eststar.dz`,
+    email: `${name.toLowerCase().replace(/\s+/g, '.')}@sti.dz`,
     avatar: name.split(' ').map(n => n[0]).join(''),
     isOnline: online,
     role: index % 5 === 0 ? 'Regional Delegate' : 'Area Delegate',

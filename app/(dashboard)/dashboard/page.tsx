@@ -18,9 +18,7 @@ import { StatusChart } from '@/components/charts/status-chart';
 import { OrdersTable } from '@/components/tables/orders-table';
 import { DelegatePerformance } from '@/components/features/dashboard/delegate-performance';
 import { NotificationsPanel } from '@/components/features/dashboard/notifications-panel';
-import { TasksPanel } from '@/components/features/dashboard/tasks-panel';
-import { getDashboardKPI } from '@/constants/mock-data';
-import { reportsService } from '@/services/reports';
+import { reportsService, type ReportsKPIs } from '@/services/reports';
 import {
   ShoppingCart,
   DollarSign,
@@ -41,18 +39,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
-  const kpi = getDashboardKPI();
-
   const [currentDate, setCurrentDate] = useState<string>('');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [kpis, setKpis] = useState<{
-    totalOrders: number;
-    totalRevenue: number;
-    pendingOrders: number;
-    activeDelegates: number;
-  } | null>(null);
+  const [kpis, setKpis] = useState<ReportsKPIs | null>(null);
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -72,15 +62,12 @@ export default function DashboardPage() {
       .getKpis()
       .then((res) => {
         if (isMounted) {
-          setKpis({
-            totalOrders: res.totalOrders,
-            totalRevenue: res.totalRevenue,
-            pendingOrders: Math.round(res.totalOrders * 0.2),
-            activeDelegates: res.activeDelegates,
-          });
+          setKpis(res);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to load dashboard KPIs', err);
+      });
 
     return () => {
       isMounted = false;
@@ -186,33 +173,37 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <KPICard
           title="Total Orders"
-          value={kpis?.totalOrders ?? kpi.ordersToday}
-          trend={+8.4}
+          value={kpis ? kpis.totalOrders : 0}
+          trend={kpis?.ordersGrowth}
+          sparkData={kpis?.ordersSparkline}
           icon={<ShoppingCart className="h-6 w-6" />}
           iconColor="blue"
           sparkColor="#2563EB"
         />
         <KPICard
           title="Total Revenue"
-          value={kpis?.totalRevenue ?? 0}
+          value={kpis ? kpis.totalRevenue : 0}
           suffix=" DA"
-          trend={+12.5}
+          trend={kpis?.revenueGrowth}
+          sparkData={kpis?.revenueSparkline}
           icon={<DollarSign className="h-6 w-6" />}
           iconColor="green"
           sparkColor="#22C55E"
         />
         <KPICard
           title="Pending Orders"
-          value={kpis?.pendingOrders ?? kpi.pendingOrders}
-          trend={-2.1}
+          value={kpis ? kpis.pendingOrders : 0}
+          trend={kpis?.pendingGrowth}
+          sparkData={kpis?.pendingSparkline}
           icon={<Clock className="h-6 w-6" />}
           iconColor="orange"
           sparkColor="#F59E0B"
         />
         <KPICard
           title="Active Delegates"
-          value={kpis?.activeDelegates ?? kpi.activeDelegates}
+          value={kpis ? kpis.activeDelegates : 0}
           subtitle="Field Sales Reps"
+          sparkData={kpis?.delegatesSparkline}
           icon={<Users className="h-6 w-6" />}
           iconColor="indigo"
           sparkColor="#6366F1"
@@ -248,11 +239,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* System Tasks */}
-      <div className="w-full">
-        <TasksPanel />
-      </div>
-
       {/* Inventory Summary */}
       <div>
         <h2 className="text-xl font-bold text-foreground tracking-tight mb-4">Inventory Summary</h2>
@@ -266,7 +252,7 @@ export default function DashboardPage() {
       {/* Footer */}
       <footer className="flex items-center justify-between py-5 border-t border-border/40 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
-          <span className="font-semibold text-foreground">ESTSTAR ERP</span>
+          <span className="font-semibold text-foreground">STI ERP</span>
           <span className="bg-muted px-2 py-0.5 rounded text-[11px]">Version 1.0</span>
         </div>
         <span>Last Backup: <strong className="text-foreground font-semibold">Today, 08:00 AM</strong></span>

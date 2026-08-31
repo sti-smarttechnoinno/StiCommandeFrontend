@@ -30,32 +30,47 @@ function formatValue(val: number, prefix: string, suffix: string) {
   return prefix + (val > 10000 ? val.toLocaleString('en-US') : String(val)) + suffix;
 }
 
-function useCountUp(target: number, duration: number = 1000, suffix: string = '', prefix: string = '') {
-  // Initialize with exact target value so SSR and initial render display immediately without flashing 0
+function useCountUp(target: number, duration: number = 800, suffix: string = '', prefix: string = '') {
   const [display, setDisplay] = useState(() => formatValue(target, prefix, suffix));
-  const started = useRef(false);
+  const prevTargetRef = useRef(target);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const start = Date.now();
+    const startVal = prevTargetRef.current;
+    prevTargetRef.current = target;
+
+    if (startVal === target) {
+      setDisplay(formatValue(target, prefix, suffix));
+      return;
+    }
+
+    let animationFrameId: number;
+    const startTime = Date.now();
+
     const tick = () => {
-      const elapsed = Date.now() - start;
+      const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.floor(target * eased);
+      const current = Math.floor(startVal + (target - startVal) * eased);
       setDisplay(formatValue(current, prefix, suffix));
-      if (progress < 1) requestAnimationFrame(tick);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(tick);
+      } else {
+        setDisplay(formatValue(target, prefix, suffix));
+      }
     };
-    // Instant animation start without lag
-    requestAnimationFrame(tick);
+
+    animationFrameId = requestAnimationFrame(tick);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [target, duration, suffix, prefix]);
 
   return display;
 }
 
 export function KPICard({ title, value, prefix = '', suffix = '', trend, subtitle, icon, iconColor, sparkData, sparkColor }: KPICardProps) {
-  const displayValue = useCountUp(value, 1000, suffix, prefix);
+  const displayValue = useCountUp(value, 800, suffix, prefix);
 
   return (
     <Card className="group relative overflow-hidden p-6 bg-card border border-border/40 shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl">

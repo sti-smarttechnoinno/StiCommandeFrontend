@@ -63,60 +63,62 @@ function playChimeSound() {
   }
 }
 
-export function useWebSocketOrders() {
-  const [unvalidatedCount, setUnvalidatedCount] = useState<number>(0);
-  const [lastEvent, setLastEvent] = useState<OrderEvent | null>(null);
-  const [lastDelegateEvent, setLastDelegateEvent] = useState<DelegateEvent | null>(null);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const socketRef = useRef<WebSocket | null>(null);
-  const seenEventIds = useRef<Set<string>>(new Set());
+// Shared Singleton State across all components and hooks
+interface SharedWebSocketState {
+  socket: WebSocket | null;
+  isConnected: boolean;
+  unvalidatedCount: number;
+  lastEvent: OrderEvent | null;
+  lastDelegateEvent: DelegateEvent | null;
+  listeners: Set<() => void>;
+  seenEventIds: Set<string>;
+  reconnectTimer: NodeJS.Timeout | null;
+  pollTimer: NodeJS.Timeout | null;
+}
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-  const wsCustomUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8085';
+const sharedState: SharedWebSocketState = {
+  socket: null,
+  isConnected: false,
+  unvalidatedCount: 0,
+  lastEvent: null,
+  lastDelegateEvent: null,
+  listeners: new Set(),
+  seenEventIds: new Set(),
+  reconnectTimer: null,
+  pollTimer: null,
+};
 
-  // Fetch initial unvalidated orders count from backend
-  const fetchUnvalidatedCount = useCallback(async () => {
-    try {
-      const res = await fetch(`${apiBaseUrl}/orders?status=pending&pageSize=1`);
-      if (res.ok) {
-        const data = await res.json();
-        if (typeof data.total === 'number') {
-          setUnvalidatedCount(data.total);
-        }
+function notifyListeners() {
+  sharedState.listeners.forEach((listener) => listener());
+}
+
+function handleSharedOrderEvent(data: OrderEvent) {
+  if (data.type === 'DELEGATE_STATUS_CHANGED' && data.delegate) {
+    sharedState.lastDelegateEvent = data.delegate;
+    notifyListeners();
+    return;
+  }
+
+  if (data.order) {
+    const eventId = String(data.order.id || data.order.order_code || `${Date.now()}-${Math.random()}`);
+    if (sharedState.seenEventIds.has(eventId)) return;
+    sharedState.seenEventIds.add(eventId);
+
+    if (data.type === 'ORDER_CREATED' || data.type === 'ORDER_STATUS_CHANGED') {
+      if (data.order.status === 'pending') {
+        sharedState.unvalidatedCount += 1;
+      } else if (sharedState.unvalidatedCount > 0) {
+        sharedState.unvalidatedCount -= 1;
       }
-    } catch (_) {
-      // Fallback
-    }
-  }, [apiBaseUrl]);
-
-  useEffect(() => {
-    fetchUnvalidatedCount();
-  }, [fetchUnvalidatedCount]);
-
-  const handleOrderEvent = useCallback((data: OrderEvent) => {
-    if (data.type === 'DELEGATE_STATUS_CHANGED' && data.delegate) {
-      setLastDelegateEvent(data.delegate);
-      return;
     }
 
-    if (!data.order?.id) return;
+    sharedState.lastEvent = data;
+    notifyListeners();
 
-    // Deduplicate events
-    const eventKey = `${data.type}_${data.order.id}`;
-    if (seenEventIds.current.has(eventKey)) return;
-    seenEventIds.current.add(eventKey);
-
-    setLastEvent(data);
-
-    if (data.type === 'ORDER_CREATED' && data.order) {
-      // Play notification chime sound
+    // Sound & toast notifications for new orders
+    if (data.type === 'ORDER_CREATED') {
       playChimeSound();
-
-      // Increment unvalidated count
-      setUnvalidatedCount((prev) => prev + 1);
-
-      // Trigger Sonner toast notification
-      const code = data.order.order_code || 'Nouvelle Commande';
+      const code = data.order.order_code || 'ORD';
       const client = data.order.client_name || 'Client';
       const amount = data.order.total_amount ? `${Number(data.order.total_amount).toLocaleString()} DA` : '';
 
@@ -125,92 +127,95 @@ export function useWebSocketOrders() {
         duration: 6000,
       });
     }
+  }
+}
+
+function initSharedWebSocket() {
+  if (typeof window === 'undefined') return;
+  if (sharedState.socket && (sharedState.socket.readyState === WebSocket.OPEN || sharedState.socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  const wsCustomUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8085';
+
+  try {
+    const ws = new WebSocket(wsCustomUrl);
+    sharedState.socket = ws;
+
+    ws.onopen = () => {
+      sharedState.isConnected = true;
+      notifyListeners();
+      if (sharedState.pollTimer) {
+        clearInterval(sharedState.pollTimer);
+        sharedState.pollTimer = null;
+      }
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data: OrderEvent = JSON.parse(event.data);
+        handleSharedOrderEvent(data);
+      } catch (_) {}
+    };
+
+    ws.onclose = () => {
+      sharedState.isConnected = false;
+      sharedState.socket = null;
+      notifyListeners();
+      if (sharedState.reconnectTimer) clearTimeout(sharedState.reconnectTimer);
+      sharedState.reconnectTimer = setTimeout(initSharedWebSocket, 8000);
+    };
+
+    ws.onerror = () => {
+      try {
+        ws.close();
+      } catch (_) {}
+    };
+  } catch (_) {
+    if (sharedState.reconnectTimer) clearTimeout(sharedState.reconnectTimer);
+    sharedState.reconnectTimer = setTimeout(initSharedWebSocket, 8000);
+  }
+}
+
+export function useWebSocketOrders() {
+  const [, setTick] = useState(0);
+
+  const fetchUnvalidatedCount = useCallback(async () => {
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const res = await fetch(`${apiBaseUrl}/orders?status=pending&pageSize=1`);
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.total === 'number') {
+          sharedState.unvalidatedCount = data.total;
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
   }, []);
 
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
-    let isSubscribed = true;
+    // Register listener for shared state changes
+    const listener = () => setTick((t) => t + 1);
+    sharedState.listeners.add(listener);
 
-    function stopFallbackPolling() {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-      }
+    // Initialize singleton socket (only 1 socket across all components)
+    initSharedWebSocket();
+
+    if (sharedState.unvalidatedCount === 0) {
+      fetchUnvalidatedCount();
     }
-
-    function startFallbackPolling() {
-      if (!isSubscribed || pollInterval) return;
-      setIsConnected(false);
-
-      async function pollLatestEvents() {
-        if (!isSubscribed) return;
-        try {
-          const res = await fetch(`${apiBaseUrl}/orders/stream`);
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data.events)) {
-              data.events.forEach((ev: OrderEvent) => handleOrderEvent(ev));
-            }
-          }
-        } catch (_) {}
-      }
-
-      pollLatestEvents();
-      pollInterval = setInterval(pollLatestEvents, 15000);
-    }
-
-    function connectWebSocket() {
-      if (!isSubscribed) return;
-
-      try {
-        ws = new WebSocket(wsCustomUrl);
-        socketRef.current = ws;
-
-        ws.onopen = () => {
-          if (!isSubscribed) return;
-          setIsConnected(true);
-          stopFallbackPolling();
-        };
-
-        ws.onmessage = (event) => {
-          if (!isSubscribed) return;
-          try {
-            const data: OrderEvent = JSON.parse(event.data);
-            handleOrderEvent(data);
-          } catch (_) {}
-        };
-
-        ws.onclose = () => {
-          if (!isSubscribed) return;
-          setIsConnected(false);
-          startFallbackPolling();
-          if (reconnectTimeout) clearTimeout(reconnectTimeout);
-          reconnectTimeout = setTimeout(connectWebSocket, 10000);
-        };
-
-        ws.onerror = () => {
-          try {
-            ws?.close();
-          } catch (_) {}
-        };
-      } catch (_) {
-        startFallbackPolling();
-      }
-    }
-
-    connectWebSocket();
 
     return () => {
-      isSubscribed = false;
-      stopFallbackPolling();
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
+      sharedState.listeners.delete(listener);
     };
-  }, [apiBaseUrl, wsCustomUrl, handleOrderEvent]);
+  }, [fetchUnvalidatedCount]);
 
-  return { unvalidatedCount, lastEvent, lastDelegateEvent, isConnected, refreshCount: fetchUnvalidatedCount };
+  return {
+    unvalidatedCount: sharedState.unvalidatedCount,
+    lastEvent: sharedState.lastEvent,
+    lastDelegateEvent: sharedState.lastDelegateEvent,
+    isConnected: sharedState.isConnected,
+    refreshCount: fetchUnvalidatedCount,
+  };
 }

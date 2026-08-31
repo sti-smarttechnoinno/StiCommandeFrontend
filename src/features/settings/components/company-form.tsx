@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,14 +9,14 @@ import { toast } from 'sonner';
 import { Building2, Upload, Trash2 } from 'lucide-react';
 
 export function CompanyForm() {
-  const [companyName, setCompanyName] = useState('ESTSTAR Distribution');
+  const [companyName, setCompanyName] = useState('STI Distribution');
   const [description, setDescription] = useState('Telecommunications distribution company specializing in mobile credit, SIM cards, and devices across Algeria.');
   const [regNumber, setRegNumber] = useState('RC-2024-001');
   const [taxId, setTaxId] = useState('NIF-123456789');
   const [rcNumber, setRcNumber] = useState('RC-001-2024');
-  const [email, setEmail] = useState('contact@eststar.dz');
+  const [email, setEmail] = useState('contact@sti.dz');
   const [phone, setPhone] = useState('+213 555 00 00 00');
-  const [website, setWebsite] = useState('https://eststar.dz');
+  const [website, setWebsite] = useState('https://sti.dz');
   const [address, setAddress] = useState('123 Didouche Mourad');
   const [city, setCity] = useState('Setif');
   const [postalCode, setPostalCode] = useState('19000');
@@ -32,8 +33,14 @@ export function CompanyForm() {
       <CardContent className="p-6 space-y-5">
         {/* Logo Upload */}
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-dashed border-primary/30">
-            <Building2 className="h-8 w-8 text-primary/50" />
+          <div className="w-20 h-20 rounded-2xl bg-muted/40 p-2 flex items-center justify-center border border-border/60 shadow-xs relative overflow-hidden">
+            <Image
+              src="/assets/logo-sti.png"
+              alt="STI Logo"
+              width={64}
+              height={64}
+              className="object-contain w-full h-full"
+            />
           </div>
           <div className="space-y-2">
             <Button variant="outline" size="sm" className="h-8 rounded-lg border-border/60 text-xs font-semibold" onClick={() => toast.info('Logo upload')}>

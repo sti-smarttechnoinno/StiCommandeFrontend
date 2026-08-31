@@ -36,22 +36,39 @@ function formatValue(val: number, prefix: string, suffix: string) {
 
 function CountUp({ target, suffix = '', prefix = '' }: { target: number; suffix?: string; prefix?: string }) {
   const [display, setDisplay] = useState(() => formatValue(target, prefix, suffix));
-  const started = useRef(false);
+  const prevTargetRef = useRef(target);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const start = Date.now();
-    const duration = 1000;
+    const startVal = prevTargetRef.current;
+    prevTargetRef.current = target;
+
+    if (startVal === target) {
+      setDisplay(formatValue(target, prefix, suffix));
+      return;
+    }
+
+    let animationFrameId: number;
+    const startTime = Date.now();
+    const duration = 800;
+
     const tick = () => {
-      const elapsed = Date.now() - start;
+      const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.floor(target * eased);
+      const current = Math.floor(startVal + (target - startVal) * eased);
       setDisplay(formatValue(current, prefix, suffix));
-      if (progress < 1) requestAnimationFrame(tick);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(tick);
+      } else {
+        setDisplay(formatValue(target, prefix, suffix));
+      }
     };
-    requestAnimationFrame(tick);
+
+    animationFrameId = requestAnimationFrame(tick);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [target, suffix, prefix]);
 
   return <>{display}</>;
@@ -112,7 +129,7 @@ export function KPICards() {
           change: data.trends.totalClients,
           icon: <Users className="h-5 w-5" />,
           iconColor: 'blue',
-          sparkline: [180, 195, 210, 205, 225, 240, 235, 260, 255, 280, 275, data.totalClients],
+          sparkline: data.sparklines?.totalClients,
           sparkColor: '#2563EB',
         },
         {
@@ -121,7 +138,7 @@ export function KPICards() {
           change: data.trends.activeClients,
           icon: <UserCheck className="h-5 w-5" />,
           iconColor: 'green',
-          sparkline: [160, 172, 185, 180, 195, 210, 205, 225, 220, 240, 235, data.activeClients],
+          sparkline: data.sparklines?.activeClients,
           sparkColor: '#22C55E',
         },
         {
@@ -130,7 +147,7 @@ export function KPICards() {
           change: -Math.abs(data.trends.inactiveClients),
           icon: <UserX className="h-5 w-5" />,
           iconColor: 'gray',
-          sparkline: [45, 42, 38, 40, 36, 34, 35, 32, 33, 30, 31, data.inactiveClients],
+          sparkline: data.sparklines?.inactiveClients,
           sparkColor: '#6B7280',
         },
         {
@@ -141,7 +158,7 @@ export function KPICards() {
           change: data.trends.outstandingCredit,
           icon: <Wallet className="h-5 w-5" />,
           iconColor: 'amber',
-          sparkline: [16, 15.5, 15, 14.8, 14.5, 14.3, 14.6, 14.4, 14.3, 14.2, 14.3, data.outstandingCredit / 1000000],
+          sparkline: data.sparklines?.outstandingCredit,
           sparkColor: '#F59E0B',
         },
         {
@@ -150,7 +167,7 @@ export function KPICards() {
           change: data.trends.ordersThisMonth,
           icon: <ShoppingBag className="h-5 w-5" />,
           iconColor: 'indigo',
-          sparkline: [420, 480, 520, 490, 560, 610, 580, 650, 680, 720, 700, data.ordersThisMonth],
+          sparkline: data.sparklines?.ordersThisMonth,
           sparkColor: '#6366F1',
         },
         {
@@ -161,7 +178,7 @@ export function KPICards() {
           change: data.trends.totalRevenue,
           icon: <TrendingUp className="h-5 w-5" />,
           iconColor: 'green',
-          sparkline: [120, 135, 148, 142, 158, 168, 162, 178, 185, 192, 195, data.totalRevenue / 1000000],
+          sparkline: data.sparklines?.totalRevenue,
           sparkColor: '#22C55E',
         },
       ]);

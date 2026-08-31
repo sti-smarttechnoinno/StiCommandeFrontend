@@ -89,7 +89,7 @@ export function generateDelegates(count: number): Delegate[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `delegate-${i + 1}`,
     name: DELEGATES[i % DELEGATES.length],
-    email: `${DELEGATES[i % DELEGATES.length].toLowerCase().replace(/\s+/g, '.')}@eststar.dz`,
+    email: `${DELEGATES[i % DELEGATES.length].toLowerCase().replace(/\s+/g, '.')}@sti.dz`,
     phone: `0770${String(100000 + i * 22222).slice(-6)}`,
     region: REGIONS[i % REGIONS.length],
     wilaya: WILAYAS[i % WILAYAS.length],

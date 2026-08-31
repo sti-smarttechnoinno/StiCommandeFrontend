@@ -2,89 +2,78 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { FeatureCards } from './feature-cards';
-import { Badge } from '@/components/ui/badge';
-
-const MODULE_HIGHLIGHTS = [
-  { title: 'Field Operations & GPS Tracking', desc: 'Real-time delegate location, shift logs, and territory coverage.' },
-  { title: 'Telecom & Credit Line Distribution', desc: 'Mobilis, Djezzy, and Ooredoo credit lines, scratch cards & SIM inventory.' },
-  { title: 'Client Line of Credit & Limits', desc: 'Automated credit balance monitoring, limit checks & approval queues.' },
-  { title: 'Real-Time ERP Analytics', desc: 'Instant KPI insights, daily sales summaries, and exportable financial reports.' },
-];
 
 export function BrandingSection() {
   return (
-    <div className="hidden lg:flex flex-col items-center justify-center text-center w-[55%] max-w-[720px] px-6 py-4 mx-auto my-auto select-none space-y-6">
+    <div className="hidden lg:flex flex-col items-center justify-center text-center w-[50%] max-w-[580px] px-8 py-6 mx-auto my-auto select-none space-y-6">
       {/* Brand Identity Header */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col items-center justify-center text-center w-full space-y-2"
+        transition={{ duration: 0.4 }}
+        className="flex flex-col items-center justify-center text-center w-full space-y-3"
       >
-        <div className="relative w-[200px] h-auto flex items-center justify-center mb-1">
+        {/* STI Logo */}
+        <div className="relative w-28 h-28 flex items-center justify-center">
           <Image
-            src="/assets/logo.png"
-            alt="ESTSTAR Logo"
-            width={200}
-            height={80}
-            className="object-contain w-[200px] h-auto"
+            src="/assets/logo-sti.png"
+            alt="STI Logo"
+            width={112}
+            height={112}
+            className="object-contain w-28 h-28 drop-shadow-md"
             priority
           />
         </div>
 
-        <h1 className="text-3xl font-extrabold text-foreground tracking-tight leading-tight font-sans">
-          ESTSTAR Distribution
-        </h1>
-
-        <p className="text-sm font-semibold text-muted-foreground max-w-[500px]">
-          Enterprise Telecommunications Distribution ERP
+        {/* Exclusive Ooredoo Partner Label */}
+        <p className="text-xs font-bold uppercase tracking-wider text-[#ED1C24]">
+          Distributeur Officiel Agréé Ooredoo
         </p>
 
-        {/* Decorative Red Divider */}
-        <div className="w-[60px] h-1 bg-primary rounded-full my-2 mx-auto" />
+        <div className="space-y-1">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
+            STI Distribution
+          </h1>
+          <p className="text-sm font-semibold text-muted-foreground">
+            Système ERP de Gestion & Distribution Ooredoo
+          </p>
+        </div>
+
+        {/* Decorative Divider */}
+        <div className="w-12 h-1 bg-[#ED1C24] rounded-full mx-auto" />
       </motion.div>
 
-      {/* Description */}
+      {/* Minimalist Description */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="max-w-[560px] mx-auto text-center"
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="max-w-[460px] mx-auto text-center"
       >
-        <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground font-medium">
-          Manage delegates, clients, mobile credit, SIM cards, territories, inventory, orders, stock movements and real-time business analytics from one unified enterprise platform.
+        <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
+          Plateforme centralisée pour la gestion exclusive des flux Ooredoo : transferts de crédit Storm, approvisionnement SIM, commandes et suivi des délégués sur le terrain.
         </p>
       </motion.div>
 
-      {/* Platform Module Highlights */}
+      {/* 3 Clean Specialized Pills */}
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full text-left"
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full pt-1"
       >
-        {MODULE_HIGHLIGHTS.map((module) => (
-          <div key={module.title} className="p-3 rounded-xl bg-card border border-border/40 shadow-2xs space-y-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-              <span className="text-xs font-bold text-foreground truncate">{module.title}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-normal pl-3">
-              {module.desc}
-            </p>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* Feature Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.25 }}
-        className="w-full"
-      >
-        <FeatureCards />
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/50 text-xs font-semibold text-foreground shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#ED1C24]" />
+          Crédit Ooredoo Storm
+        </div>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/50 text-xs font-semibold text-foreground shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#ED1C24]" />
+          SIMs & Cartes de Recharge
+        </div>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border/50 text-xs font-semibold text-foreground shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#ED1C24]" />
+          Réseau Délégués Ooredoo
+        </div>
       </motion.div>
     </div>
   );

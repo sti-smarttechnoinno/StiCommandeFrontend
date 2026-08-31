@@ -58,7 +58,7 @@ export default function NewClientPage() {
                 Add New Client
               </h1>
               <p className="text-sm text-muted-foreground">
-                Onboard new customer account into ESTSTAR distribution system.
+                Onboard new customer account into STI distribution system.
               </p>
             </div>
           </div>

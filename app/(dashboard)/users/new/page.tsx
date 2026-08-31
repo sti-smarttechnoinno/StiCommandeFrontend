@@ -46,7 +46,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const DEFAULT_PASSWORD = 'EstStar2026!';
+const DEFAULT_PASSWORD = 'Sti2026!';
 
 export default function NewUserPage() {
   const router = useRouter();
@@ -166,7 +166,7 @@ export default function NewUserPage() {
                 Add New User Account
               </h1>
               <p className="text-sm text-muted-foreground">
-                Onboard new platform user (Administrator, Manager, or Viewer) into ESTSTAR system.
+                Onboard new platform user (Administrator, Manager, or Viewer) into STI system.
               </p>
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function NewUserPage() {
                   <Input
                     required
                     type="email"
-                    placeholder="e.g. k.benziane@eststar.dz"
+                    placeholder="e.g. k.benziane@sti.dz"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-11 rounded-xl text-xs border-border/60 bg-background"
@@ -452,7 +452,7 @@ export default function NewUserPage() {
                     <Mail className="h-3.5 w-3.5 text-blue-500" /> Email:
                   </span>
                   <span className="font-semibold text-foreground truncate max-w-[160px]">
-                    {email.trim() || 'user@eststar.dz'}
+                    {email.trim() || 'user@sti.dz'}
                   </span>
                 </div>
 

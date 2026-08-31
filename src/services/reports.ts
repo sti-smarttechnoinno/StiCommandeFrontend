@@ -5,10 +5,16 @@ export interface ReportsKPIs {
   revenueGrowth: number;
   totalOrders: number;
   ordersGrowth: number;
+  pendingOrders: number;
+  pendingGrowth: number;
   avgOrderValue: number;
   avgOrderGrowth: number;
   activeClients: number;
   activeDelegates: number;
+  ordersSparkline?: number[];
+  revenueSparkline?: number[];
+  pendingSparkline?: number[];
+  delegatesSparkline?: number[];
 }
 
 export interface RevenueOverviewData {

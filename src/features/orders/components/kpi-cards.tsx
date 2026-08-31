@@ -35,22 +35,39 @@ function formatValue(val: number, prefix: string, suffix: string) {
 
 function CountUp({ target, suffix = '', prefix = '' }: { target: number; suffix?: string; prefix?: string }) {
   const [display, setDisplay] = useState(() => formatValue(target, prefix, suffix));
-  const started = useRef(false);
+  const prevTargetRef = useRef(target);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    const start = Date.now();
-    const duration = 1000;
+    const startVal = prevTargetRef.current;
+    prevTargetRef.current = target;
+
+    if (startVal === target) {
+      setDisplay(formatValue(target, prefix, suffix));
+      return;
+    }
+
+    let animationFrameId: number;
+    const startTime = Date.now();
+    const duration = 800;
+
     const tick = () => {
-      const elapsed = Date.now() - start;
+      const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.floor(target * eased);
+      const current = Math.floor(startVal + (target - startVal) * eased);
       setDisplay(formatValue(current, prefix, suffix));
-      if (progress < 1) requestAnimationFrame(tick);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(tick);
+      } else {
+        setDisplay(formatValue(target, prefix, suffix));
+      }
     };
-    requestAnimationFrame(tick);
+
+    animationFrameId = requestAnimationFrame(tick);
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [target, prefix, suffix]);
 
   return <span>{display}</span>;
@@ -95,49 +112,49 @@ export function KPICards() {
     {
       title: "Total Orders",
       value: liveKpis?.totalOrders ?? 0,
-      change: 12.5,
+      change: liveKpis?.ordersGrowth ?? 0,
       icon: <ShoppingCart className="h-5 w-5" />,
       iconColor: 'blue',
       sparkColor: '#2563EB',
-      sparkline: [28, 35, 42, 38, 55, 62, 58, 72, 68, 85, 92, liveKpis?.totalOrders ?? 0],
+      sparkline: liveKpis?.ordersSparkline,
     },
     {
       title: "Total Revenue",
       value: liveKpis?.totalRevenue ?? 0,
       prefix: '',
       suffix: ' DA',
-      change: 18.4,
+      change: liveKpis?.revenueGrowth ?? 0,
       icon: <DollarSign className="h-5 w-5" />,
       iconColor: 'green',
       sparkColor: '#22C55E',
-      sparkline: [180, 220, 250, 210, 290, 310, 280, 340, 360, 380, 350, liveKpis?.totalRevenue ?? 0],
+      sparkline: liveKpis?.revenueSparkline,
     },
     {
       title: 'Pending Orders',
       value: liveKpis?.pendingOrders ?? 0,
-      change: -4.2,
+      change: liveKpis?.pendingGrowth ?? 0,
       icon: <Clock className="h-5 w-5" />,
       iconColor: 'orange',
       sparkColor: '#F59E0B',
-      sparkline: [42, 38, 35, 32, 28, 30, 26, 24, 22, 25, 23, liveKpis?.pendingOrders ?? 0],
+      sparkline: liveKpis?.pendingSparkline,
     },
     {
       title: 'Validated Orders',
       value: liveKpis?.validatedOrders ?? 0,
-      change: 8.1,
+      change: liveKpis?.validatedGrowth ?? 0,
       icon: <Users className="h-5 w-5" />,
       iconColor: 'indigo',
       sparkColor: '#6366F1',
-      sparkline: [30, 32, 33, 34, 35, 36, 34, 37, 36, 38, 37, liveKpis?.validatedOrders ?? 0],
+      sparkline: liveKpis?.validatedSparkline,
     },
     {
       title: 'Delivered Orders',
       value: liveKpis?.deliveredOrders ?? 0,
-      change: 6.5,
+      change: liveKpis?.deliveredGrowth ?? 0,
       icon: <AlertTriangle className="h-5 w-5" />,
       iconColor: 'green',
       sparkColor: '#10B981',
-      sparkline: [8, 7, 6, 5, 6, 5, 4, 5, 4, 3, 4, liveKpis?.deliveredOrders ?? 0],
+      sparkline: liveKpis?.deliveredSparkline,
     },
   ];
 

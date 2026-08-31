@@ -30,7 +30,7 @@ export function AboutSystem() {
             <Server className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-foreground">ESTSTAR ERP</h3>
+            <h3 className="text-lg font-bold text-foreground">STI ERP</h3>
             <p className="text-xs text-muted-foreground">Enterprise Resource Planning System</p>
           </div>
           <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-semibold px-2 py-0.5 rounded-full ml-auto">

@@ -7,18 +7,10 @@ import { cn } from '@/lib/utils';
 import { NAV_ITEMS } from '@/constants';
 import { useUIStore } from '@/store';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { CheckCircle } from 'lucide-react';
 import { useWebSocketOrders } from '@/hooks/use-websocket-orders';
 import { notificationsService } from '@/services/notifications';
 import { useNotificationsStore } from '@/features/notifications/store';
 import { useState, useEffect } from 'react';
-
-const SYSTEM_STATUS = [
-  { label: 'Connected Server', online: true },
-  { label: 'API Online', online: true },
-  { label: 'Redis Connected', online: true },
-  { label: 'PostgreSQL Connected', online: true },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -61,8 +53,8 @@ export function Sidebar() {
           {collapsed ? (
             <div className="relative w-10 h-10 flex items-center justify-center">
               <Image
-                src="/assets/logo.png"
-                alt="ESTSTAR Logo"
+                src="/assets/logo-sti.png"
+                alt="STI Logo"
                 width={40}
                 height={40}
                 className="object-contain"
@@ -74,8 +66,8 @@ export function Sidebar() {
               {/* Centered Bigger Logo Image */}
               <div className="relative w-24 h-24 flex items-center justify-center">
                 <Image
-                  src="/assets/logo.png"
-                  alt="ESTSTAR Logo"
+                  src="/assets/logo-sti.png"
+                  alt="STI Logo"
                   width={96}
                   height={96}
                   className="object-contain"
@@ -86,7 +78,7 @@ export function Sidebar() {
               {/* Centered Refined Text Below Logo */}
               <div className="text-center">
                 <span className="block text-xl font-bold tracking-tight text-foreground leading-none">
-                  ESTSTAR
+                  STI
                 </span>
                 <span className="block text-sm font-semibold text-primary mt-1.5 leading-none">
                   Distribution
@@ -142,20 +134,6 @@ export function Sidebar() {
             );
           })}
         </nav>
-
-        {/* Footer Status */}
-        {!collapsed && (
-          <div className="px-5 py-4 border-t border-border/40">
-            <div className="space-y-1.5">
-              {SYSTEM_STATUS.map((s) => (
-                <div key={s.label} className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                  <CheckCircle className="h-3 w-3 text-success" />
-                  <span>{s.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </aside>
     </>
   );

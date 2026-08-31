@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { notificationsService } from '@/services/notifications';
 import type { Notification } from '@/features/notifications/types';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, AlertTriangle, User, Server, Bell, ArrowRight, CheckCheck } from 'lucide-react';
+import { ShoppingCart, AlertTriangle, User, Server, Bell, ArrowRight, CheckCheck, BellOff } from 'lucide-react';
 import Link from 'next/link';
 
 const NOTIF_ICONS: Record<string, { icon: any; color: string }> = {
@@ -73,42 +73,62 @@ export function NotificationsPanel() {
       </CardHeader>
 
       <CardContent className="p-3 flex-1 flex flex-col justify-between space-y-1">
-        <div className="space-y-1 flex-1">
-          {notifications.map((n) => {
-            const notifConfig = NOTIF_ICONS[n.category] || NOTIF_ICONS.orders;
-            const Icon = notifConfig.icon;
-            const color = notifConfig.color;
-            return (
-              <div
-                key={n.id}
-                className={cn(
-                  'group flex items-start gap-3 p-2.5 rounded-xl cursor-pointer transition-colors hover:bg-muted/40',
-                  n.read ? 'opacity-80' : 'bg-muted/20 font-medium'
-                )}
-              >
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5', color)}>
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
-                      {n.title}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
-                      {n.timestamp ? n.timestamp : 'Just now'}
-                    </span>
+        {loading ? (
+          <div className="space-y-2.5 p-2 flex-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-muted/40 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-8 space-y-3 flex-1 my-auto min-h-[200px]">
+            <div className="w-12 h-12 rounded-2xl bg-muted/50 border border-border/40 flex items-center justify-center text-muted-foreground shadow-2xs">
+              <BellOff className="h-6 w-6 text-muted-foreground/70" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-foreground">No Recent Notifications</p>
+              <p className="text-xs text-muted-foreground max-w-[260px]">
+                You&apos;re all caught up! Order alerts, stock alerts and delegate updates will appear here.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1 flex-1">
+            {notifications.map((n) => {
+              const notifConfig = NOTIF_ICONS[n.category] || NOTIF_ICONS.orders;
+              const Icon = notifConfig.icon;
+              const color = notifConfig.color;
+              return (
+                <div
+                  key={n.id}
+                  className={cn(
+                    'group flex items-start gap-3 p-2.5 rounded-xl cursor-pointer transition-colors hover:bg-muted/40',
+                    n.read ? 'opacity-80' : 'bg-muted/20 font-medium'
+                  )}
+                >
+                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5', color)}>
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground leading-snug mt-0.5 line-clamp-1">
-                    {n.description}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">
+                        {n.title}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-medium flex-shrink-0">
+                        {n.timestamp ? n.timestamp : 'Just now'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-snug mt-0.5 line-clamp-1">
+                      {n.description}
+                    </p>
+                  </div>
+                  {!n.read && (
+                    <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                  )}
                 </div>
-                {!n.read && (
-                  <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Card Footer Action */}
         <div className="pt-3 mt-2 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground px-1">
