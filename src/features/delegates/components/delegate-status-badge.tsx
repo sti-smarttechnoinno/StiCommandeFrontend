@@ -1,5 +1,4 @@
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { DelegateStatus } from '../types';
@@ -9,7 +8,7 @@ export function DelegateStatusBadge({
   lastActivity,
 }: {
   status: DelegateStatus;
-  lastActivity?: string;
+  lastActivity?: string | null;
 }) {
   if (status === 'online') {
     return (
@@ -47,27 +46,41 @@ export function DelegateStatusBadge({
     );
   }
 
-  let relativeTime = 'Hors ligne';
-  if (lastActivity) {
-    try {
-      const distance = formatDistanceToNow(new Date(lastActivity), {
-        addSuffix: true,
-        locale: fr,
-      });
-      const clean = distance
-        .replace('environ ', '')
-        .replace('il y a ', '');
-      relativeTime = `Il y a ${clean}`;
-    } catch (_) {}
+  // When created first time (never connected)
+  if (status === 'never_connected' || !lastActivity) {
+    return (
+      <Badge
+        variant="outline"
+        className="px-2.5 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 w-fit shadow-2xs bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700"
+      >
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400" />
+        <span>Pas encore connecté</span>
+      </Badge>
+    );
+  }
+
+  // Offline with last seen activity: "Offline il y a ..."
+  let relativeTime = '';
+  try {
+    const distance = formatDistanceToNow(new Date(lastActivity), {
+      addSuffix: false,
+      locale: fr,
+    });
+    const clean = distance
+      .replace('environ ', '')
+      .replace("moins d'une minute", 'quelques secondes');
+    relativeTime = `il y a ${clean}`;
+  } catch (_) {
+    relativeTime = 'récemment';
   }
 
   return (
     <Badge
       variant="outline"
-      className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1.5 w-fit shadow-2xs bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-400/30"
+      className="px-2.5 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 w-fit shadow-2xs bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border border-zinc-400/30"
     >
-      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400" />
-      <span>{relativeTime}</span>
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-zinc-400" />
+      <span>Offline {relativeTime}</span>
     </Badge>
   );
 }

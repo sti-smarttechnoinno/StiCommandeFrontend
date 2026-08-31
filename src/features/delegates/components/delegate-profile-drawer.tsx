@@ -77,7 +77,10 @@ export function DelegateProfileDrawer({ delegateId, onClose }: DelegateProfileDr
                   <div>
                     <DrawerTitle className="text-lg font-bold text-foreground">{delegate.name}</DrawerTitle>
                     <div className="flex items-center gap-2 mt-1">
-                      <DelegateStatusBadge status={delegate.status as any} />
+                      <DelegateStatusBadge
+                        status={delegate.status as any}
+                        lastActivity={delegate.lastActivity}
+                      />
                       <span className="text-xs text-muted-foreground">{delegate.region}</span>
                     </div>
                   </div>

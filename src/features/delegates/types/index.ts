@@ -1,6 +1,4 @@
-import type { Delegate } from '@/types';
-
-export type DelegateStatus = 'online' | 'busy' | 'offline' | 'suspended';
+export type DelegateStatus = 'online' | 'busy' | 'offline' | 'never_connected' | 'suspended';
 export type SortField = 'name' | 'email' | 'phone' | 'region' | 'wilaya' | 'totalOrders' | 'totalRevenue' | 'completionRate' | 'status' | 'lastActivity' | 'createdAt';
 export type SortDirection = 'asc' | 'desc';
 

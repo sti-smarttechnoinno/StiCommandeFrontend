@@ -42,19 +42,23 @@ export function OrderActions({
   return (
     <div className="flex items-center justify-end gap-0.5">
       <Tooltip>
-        <TooltipTrigger>
-          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground" onClick={() => onView(orderId)}>
-            <Eye className="h-3.5 w-3.5" />
-          </Button>
+        <TooltipTrigger
+          type="button"
+          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          onClick={() => onView(orderId)}
+        >
+          <Eye className="h-3.5 w-3.5" />
         </TooltipTrigger>
         <TooltipContent>View details</TooltipContent>
       </Tooltip>
 
       <Tooltip>
-        <TooltipTrigger>
-          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground" onClick={() => onEdit(orderId)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+        <TooltipTrigger
+          type="button"
+          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          onClick={() => onEdit(orderId)}
+        >
+          <Pencil className="h-3.5 w-3.5" />
         </TooltipTrigger>
         <TooltipContent>Edit order</TooltipContent>
       </Tooltip>
@@ -62,18 +66,22 @@ export function OrderActions({
       {status === 'pending' && (
         <>
           <Tooltip>
-            <TooltipTrigger>
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-emerald-600 hover:bg-emerald-500/10" onClick={() => onApprove(orderId)}>
-                <Check className="h-3.5 w-3.5" />
-              </Button>
+            <TooltipTrigger
+              type="button"
+              className="h-7 w-7 rounded-md inline-flex items-center justify-center text-emerald-600 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+              onClick={() => onApprove(orderId)}
+            >
+              <Check className="h-3.5 w-3.5" />
             </TooltipTrigger>
             <TooltipContent>Approve order</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger>
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-rose-600 hover:bg-rose-500/10" onClick={() => onReject(orderId)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
+            <TooltipTrigger
+              type="button"
+              className="h-7 w-7 rounded-md inline-flex items-center justify-center text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+              onClick={() => onReject(orderId)}
+            >
+              <X className="h-3.5 w-3.5" />
             </TooltipTrigger>
             <TooltipContent>Reject order</TooltipContent>
           </Tooltip>

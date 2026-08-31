@@ -121,26 +121,32 @@ const WilayaCard = memo(function WilayaCard({ wilaya, onOpen }: { wilaya: Wilaya
               {/* Quick Action Icons */}
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-md" onClick={(e) => { e.stopPropagation(); toast.info(`View ${wilaya.name}`); }}>
-                      <Eye className="h-3 w-3" />
-                    </Button>
+                  <TooltipTrigger
+                    type="button"
+                    className="h-6 w-6 p-0 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); toast.info(`View ${wilaya.name}`); }}
+                  >
+                    <Eye className="h-3 w-3" />
                   </TooltipTrigger>
                   <TooltipContent>View</TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-md" onClick={(e) => { e.stopPropagation(); toast.info(`Edit ${wilaya.name}`); }}>
-                      <Pencil className="h-3 w-3" />
-                    </Button>
+                  <TooltipTrigger
+                    type="button"
+                    className="h-6 w-6 p-0 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); toast.info(`Edit ${wilaya.name}`); }}
+                  >
+                    <Pencil className="h-3 w-3" />
                   </TooltipTrigger>
                   <TooltipContent>Edit</TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-md text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); toast.success(`${wilaya.name} deleted`); }}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                  <TooltipTrigger
+                    type="button"
+                    className="h-6 w-6 p-0 rounded-md inline-flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); toast.success(`${wilaya.name} deleted`); }}
+                  >
+                    <Trash2 className="h-3 w-3" />
                   </TooltipTrigger>
                   <TooltipContent>Delete</TooltipContent>
                 </Tooltip>

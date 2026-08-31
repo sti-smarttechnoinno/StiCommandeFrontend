@@ -207,7 +207,7 @@ export default function DelegateProfilePage() {
                   <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
                     {delegate.delegateCode || `DEL-2026-${id.padStart(6, '0')}`}
                   </span>
-                  <DelegateStatusBadge status={delegate.status as any} />
+                  <DelegateStatusBadge status={delegate.status as any} lastActivity={delegate.lastActivity} />
                 </div>
 
                 <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-0.5">
