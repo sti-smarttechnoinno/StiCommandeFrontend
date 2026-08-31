@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { clientsService, type ClientData } from '@/services/clients';
 import { ordersService, type OrderData } from '@/services/orders';
 import { ClientTypeBadge, ClientStatusBadge } from '@/features/clients/components/client-badges';
+import { ClientObjectivesCard } from '@/features/clients/components/client-objectives-card';
 import { OrderStatusBadge } from '@/features/orders/components/order-status-badge';
 import {
   ArrowLeft,
@@ -338,6 +339,9 @@ export default function ClientProfilePage() {
           </div>
         </Card>
       </div>
+
+      {/* Client Monthly Objectives & Performance Archive */}
+      <ClientObjectivesCard clientId={id} clientName={client.name} />
 
       {/* Main Content Layout: Client Orders (8 cols) + Account Sidebar (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

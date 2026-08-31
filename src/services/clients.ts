@@ -75,6 +75,40 @@ interface ClientsParams {
   pageSize?: number;
 }
 
+export interface ClientMonthlyObjectiveData {
+  id?: number | null;
+  year: number;
+  month: number;
+  monthName: string;
+  targetRevenue: number;
+  achievedRevenue: number;
+  remainingRevenue: number;
+  revenuePercentage: number;
+  targetOrders: number;
+  achievedOrders: number;
+  ordersPercentage: number;
+  notes?: string | null;
+  status: 'completed' | 'in_progress' | 'upcoming' | 'missed' | 'not_set';
+  isCurrent: boolean;
+  isConfigured: boolean;
+}
+
+export interface ClientObjectivesResponse {
+  clientId: string;
+  clientName: string;
+  currentMonth: ClientMonthlyObjectiveData;
+  archive: ClientMonthlyObjectiveData[];
+  totalObjectivesCount: number;
+}
+
+export interface SetClientObjectivePayload {
+  year: number;
+  month: number;
+  target_revenue: number;
+  target_orders?: number;
+  notes?: string;
+}
+
 export const clientsService = {
   async list(params: ClientsParams = {}): Promise<ClientsResponse> {
     const query: Record<string, string | string[] | number> = {};
@@ -108,6 +142,16 @@ export const clientsService = {
   async get(id: string): Promise<ClientData> {
     const { data } = await api.get<{ data: ClientData }>(`/clients/${id}`);
     return data.data;
+  },
+
+  async getObjectives(id: string): Promise<ClientObjectivesResponse> {
+    const { data } = await api.get<ClientObjectivesResponse>(`/clients/${id}/objectives`);
+    return data;
+  },
+
+  async setObjective(id: string, payload: SetClientObjectivePayload): Promise<any> {
+    const { data } = await api.post(`/clients/${id}/objectives`, payload);
+    return data;
   },
 
   async create(client: Partial<ClientData>): Promise<ClientData> {

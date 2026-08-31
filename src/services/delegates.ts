@@ -73,6 +73,40 @@ export interface UpdateDelegateParams extends Partial<DelegateData> {
   password?: string;
 }
 
+export interface MonthlyObjectiveData {
+  id?: number | null;
+  year: number;
+  month: number;
+  monthName: string;
+  targetRevenue: number;
+  achievedRevenue: number;
+  remainingRevenue: number;
+  revenuePercentage: number;
+  targetOrders: number;
+  achievedOrders: number;
+  ordersPercentage: number;
+  notes?: string | null;
+  status: 'completed' | 'in_progress' | 'upcoming' | 'missed' | 'not_set';
+  isCurrent: boolean;
+  isConfigured: boolean;
+}
+
+export interface DelegateObjectivesResponse {
+  delegateId: string;
+  delegateName: string;
+  currentMonth: MonthlyObjectiveData;
+  archive: MonthlyObjectiveData[];
+  totalObjectivesCount: number;
+}
+
+export interface SetObjectivePayload {
+  year: number;
+  month: number;
+  target_revenue: number;
+  target_orders?: number;
+  notes?: string;
+}
+
 export const delegatesService = {
   async list(params: DelegatesParams = {}): Promise<DelegatesResponse> {
     const query: Record<string, string | string[] | number> = {};
@@ -102,6 +136,16 @@ export const delegatesService = {
   async get(id: string): Promise<DelegateData> {
     const { data } = await api.get<{ data: DelegateData }>(`/delegates/${id}`);
     return data.data;
+  },
+
+  async getObjectives(id: string): Promise<DelegateObjectivesResponse> {
+    const { data } = await api.get<DelegateObjectivesResponse>(`/delegates/${id}/objectives`);
+    return data;
+  },
+
+  async setObjective(id: string, payload: SetObjectivePayload): Promise<any> {
+    const { data } = await api.post(`/delegates/${id}/objectives`, payload);
+    return data;
   },
 
   async create(delegate: Partial<DelegateData> & { password?: string }): Promise<DelegateData> {

@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { delegatesService, type DelegateData } from '@/services/delegates';
 import { clientsService, type ClientData } from '@/services/clients';
 import { DelegateStatusBadge } from '@/features/delegates/components/delegate-status-badge';
+import { DelegateObjectivesCard } from '@/features/delegates/components/delegate-objectives-card';
 import { ClientTypeBadge, ClientStatusBadge } from '@/features/clients/components/client-badges';
 import { formatCurrency, formatFullCurrency, getPerformanceLevel } from '@/features/delegates/utils';
 import { EditDelegateDialog } from '@/features/delegates/components/edit-delegate-dialog';
@@ -327,6 +328,9 @@ export default function DelegateProfilePage() {
           </div>
         </Card>
       </div>
+
+      {/* Monthly Objectives & Performance Archive Section */}
+      <DelegateObjectivesCard delegateId={id} delegateName={delegate.name} />
 
       {/* Main Content Layout: Assigned Clients Table (8 cols) + Territory Sidebar (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
