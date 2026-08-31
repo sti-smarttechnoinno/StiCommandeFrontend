@@ -203,7 +203,7 @@ export default function RegionsPage() {
       {/* Region Accordion or Empty State */}
       <div className="w-full">
         {filteredRegions.length === 0 ? (
-          <RegionsEmptyState />
+          <RegionsEmptyState onCreateRegion={handleOpenCreate} />
         ) : (
           <RegionAccordion regions={filteredRegions} onEditRegion={handleOpenCustomize} />
         )}
