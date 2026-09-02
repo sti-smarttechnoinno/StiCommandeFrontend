@@ -45,10 +45,11 @@ const fetchNextProductCode = async (operator: string, category: string): Promise
   try {
     const result = await productsService.list({ pageSize: 1, sortField: 'created_at', sortDirection: 'desc' });
     const count = (result.total || 0) + 1;
-    const prefix = `${(operator || 'MOB').slice(0, 3).toUpperCase()}-${(category || 'MOB').slice(0, 3).toUpperCase()}`;
-    return `${prefix}-${String(count).padStart(4, '0')}`;
+    const opPrefix = operator ? operator.slice(0, 3).toUpperCase() : 'PRD';
+    const catPrefix = category ? category.slice(0, 3).toUpperCase() : 'GEN';
+    return `${opPrefix}-${catPrefix}-${String(count).padStart(4, '0')}`;
   } catch {
-    return 'MOB-MOB-0001';
+    return 'PRD-GEN-0001';
   }
 };
 
@@ -64,11 +65,11 @@ export function CreateProductForm() {
   const [loadingLookups, setLoadingLookups] = useState(true);
 
   // Form fields
-  const [sku, setSku] = useState('MOB-MOB-0001');
+  const [sku, setSku] = useState('PRD-GEN-0001');
   const [name, setName] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [operator, setOperator] = useState('Mobilis');
-  const [category, setCategory] = useState('mobile_credit');
+  const [operator, setOperator] = useState('');
+  const [category, setCategory] = useState('');
   const [nominalPrice, setNominalPrice] = useState<number>(10000);
   const [stockQuantity, setStockQuantity] = useState<number>(50000);
   const [minStock, setMinStock] = useState<number>(1000);
@@ -88,11 +89,9 @@ export function CreateProductForm() {
         if (!active) return;
         if (opRes.data && opRes.data.length > 0) {
           setOperators(opRes.data);
-          if (!operator) setOperator(opRes.data[0].name);
         }
         if (catRes.data && catRes.data.length > 0) {
           setCategories(catRes.data);
-          if (!category) setCategory(catRes.data[0].slug);
         }
         if (regRes.data) {
           setRealRegions(regRes.data);
@@ -121,8 +120,8 @@ export function CreateProductForm() {
   const handleResetForm = () => {
     setName('');
     setBarcode('');
-    if (operators.length > 0) setOperator(operators[0].name);
-    if (categories.length > 0) setCategory(categories[0].slug);
+    setOperator('');
+    setCategory('');
     setNominalPrice(10000);
     setStockQuantity(50000);
     setMinStock(1000);
@@ -136,6 +135,8 @@ export function CreateProductForm() {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Product Name is required';
     if (!sku.trim()) errs.sku = 'SKU / Product Code is required';
+    if (!operator) errs.operator = 'Please choose a Telecom Operator';
+    if (!category) errs.category = 'Please choose a Product Category';
     if (nominalPrice < 0) errs.nominalPrice = 'Nominal Price must be 0 or greater';
     if (stockQuantity < 0) errs.stockQuantity = 'Stock quantity cannot be negative';
 
@@ -301,7 +302,7 @@ export function CreateProductForm() {
                       setName(e.target.value);
                       if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
                     }}
-                    placeholder="e.g. Arselli Mobilis 10000 DA"
+                    placeholder="Storm"
                     className={cn(
                       'h-10 text-sm bg-background rounded-xl border-border/70 focus:border-primary focus:ring-primary/20',
                       errors.name && 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
@@ -335,9 +336,20 @@ export function CreateProductForm() {
                   <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Radio className="h-3.5 w-3.5 text-emerald-500" /> Telecom Operator <span className="text-primary">*</span>
                   </label>
-                  <Select value={operator} onValueChange={(val) => setOperator(val)}>
-                    <SelectTrigger className="w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs">
-                      <SelectValue placeholder={loadingLookups ? 'Loading operators...' : 'Select operator'} />
+                  <Select
+                    value={operator}
+                    onValueChange={(val) => {
+                      setOperator(val || '');
+                      if (errors.operator) setErrors((prev) => ({ ...prev, operator: '' }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        'w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs',
+                        errors.operator && 'border-rose-500 focus:border-rose-500'
+                      )}
+                    >
+                      <SelectValue placeholder={loadingLookups ? 'Loading operators...' : 'Choose an operator...'} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/60 p-1">
                       {operators.map((op) => (
@@ -350,6 +362,11 @@ export function CreateProductForm() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.operator && (
+                    <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.operator}
+                    </p>
+                  )}
                 </div>
 
                 {/* Product Category Selection (Dynamic from DB) */}
@@ -357,9 +374,20 @@ export function CreateProductForm() {
                   <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Layers className="h-3.5 w-3.5 text-blue-500" /> Product Category <span className="text-primary">*</span>
                   </label>
-                  <Select value={category} onValueChange={(val) => setCategory(val)}>
-                    <SelectTrigger className="w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs">
-                      <SelectValue placeholder={loadingLookups ? 'Loading categories...' : 'Select category'} />
+                  <Select
+                    value={category}
+                    onValueChange={(val) => {
+                      setCategory(val || '');
+                      if (errors.category) setErrors((prev) => ({ ...prev, category: '' }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        'w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs',
+                        errors.category && 'border-rose-500 focus:border-rose-500'
+                      )}
+                    >
+                      <SelectValue placeholder={loadingLookups ? 'Loading categories...' : 'Choose a category...'} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/60 p-1">
                       {categories.map((cat) => (
@@ -369,6 +397,11 @@ export function CreateProductForm() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.category && (
+                    <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.category}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -480,7 +513,7 @@ export function CreateProductForm() {
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <Globe className="h-3.5 w-3.5 text-emerald-500" /> Distribution Region Scope <span className="text-primary">*</span>
                 </label>
-                <Select value={region} onValueChange={(val) => setRegion(val)}>
+                <Select value={region} onValueChange={(val) => setRegion(val || '')}>
                   <SelectTrigger className="w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs">
                     <SelectValue placeholder={loadingLookups ? 'Loading regions...' : 'Select region scope'} />
                   </SelectTrigger>

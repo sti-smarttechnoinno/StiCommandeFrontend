@@ -21,8 +21,10 @@ import { ProductsErrorState } from '@/features/products/components/error-states'
 import { Plus, Download, RefreshCw, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export default function ProductsPage() {
+  const { can } = usePermissions();
   const { selectedProduct, setSelectedProduct } = useProductsStore();
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Friday, July 31, 2026');
@@ -144,16 +146,18 @@ export default function ProductsPage() {
             <span>Refresh</span>
           </Button>
 
-          {/* New Product Primary Button */}
-          <Link href="/products/new">
-            <Button
-              size="sm"
-              className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus className="h-3.5 w-3.5 text-primary-foreground" />
-              <span>New Product</span>
-            </Button>
-          </Link>
+          {/* New Product Primary Button (Visible only if can('products.manage')) */}
+          {can('products.manage') && (
+            <Link href="/products/new">
+              <Button
+                size="sm"
+                className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+                <span>New Product</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

@@ -7,7 +7,37 @@ export interface OrderItemData {
   reference?: string;
   unit_price: number;
   quantity: number;
+  validated_quantity?: number;
   subtotal: number;
+  category?: string;
+  category_name?: string;
+  is_virtual?: boolean;
+}
+
+export interface OrderValidationItemPayload {
+  item_id: string;
+  product_name: string;
+  reference?: string;
+  quantity_validated: number;
+  cumulative_quantity: number;
+  ordered_quantity: number;
+  remaining_quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface OrderValidationLogData {
+  id: string;
+  order_id: string;
+  batch_number: number;
+  status: string;
+  validated_by?: string;
+  total_quantity: number;
+  total_amount: number;
+  items_payload?: OrderValidationItemPayload[];
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OrderData {
@@ -19,13 +49,23 @@ export interface OrderData {
   delegate_name?: string;
   region: string;
   wilaya?: string;
+  delivery_address?: string;
   total_amount: number;
   status: 'pending' | 'validated' | 'partially_validated' | 'processing' | 'delivered' | 'cancelled';
   payment_method: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
   notes?: string;
   created_at: string;
   updated_at: string;
   items?: OrderItemData[];
+  client?: any;
+  delegate?: any;
+  has_virtual_items?: boolean;
+  has_physical_items?: boolean;
+  workflow_type?: 'virtual' | 'physical' | 'mixed';
+  requires_delivery?: boolean;
+  categories?: string[];
+  validation_logs?: OrderValidationLogData[];
 }
 
 export interface ListOrdersParams {

@@ -7,10 +7,10 @@ export type SortField = 'name' | 'sku' | 'category' | 'price' | 'stock' | 'statu
 export type SortDirection = 'asc' | 'desc';
 
 export interface ExtendedProduct extends Product {
-  nominalPrice: number;
+  nominalPrice?: number;
   faceValue: number;
-  discountPercent: number;
-  discountAmount: number;
+  discountPercent?: number;
+  discountAmount?: number;
   sellingPrice: number;
   margin: number;
   profit: number;

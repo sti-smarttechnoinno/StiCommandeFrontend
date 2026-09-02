@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback, useState, useEffect, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   useReactTable,
   getCoreRowModel,
@@ -47,6 +48,7 @@ import type { ExtendedOrder, SortField } from '../types';
 import { ordersService, type OrderData } from '@/services/orders';
 
 export function OrdersTable() {
+  const router = useRouter();
   const { filters, selectedIds, expandedIds, sort, page, pageSize, toggleSelect, selectAll, clearSelection, toggleExpand, setSort, setPage, setPageSize } = useOrdersStore();
 
   const [dbOrders, setDbOrders] = useState<ExtendedOrder[]>([]);
@@ -389,8 +391,8 @@ export function OrdersTable() {
           <OrderActions
             orderId={row.original.id}
             status={row.original.status}
-            onView={(id) => toast.info(`View order ${id}`)}
-            onEdit={(id) => toast.info(`Edit order ${id}`)}
+            onView={(id) => router.push(`/orders/${id}`)}
+            onEdit={(id) => router.push(`/orders/${id}`)}
             onApprove={(id) => toast.success(`Order ${id} approved`)}
             onReject={(id) => toast.error(`Order ${id} rejected`)}
             onPrint={(id) => toast.info(`Printing order ${id}`)}

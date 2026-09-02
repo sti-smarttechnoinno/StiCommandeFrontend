@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
   DropdownMenuLabel,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useOrdersStore } from '../store';
+import { regionsService } from '@/services/regions';
 import { Search, Filter, X, ChevronDown, Calendar } from 'lucide-react';
 import type { OrderStatus } from '@/types';
 
@@ -31,19 +33,16 @@ const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-const REGION_OPTIONS = ['Algiers', 'Oran', 'Constantine', 'Annaba', 'Batna', 'Sétif', 'Blida', 'Tizi Ouzou', 'Biskra', 'Tlemcen'];
-const DELEGATE_OPTIONS = ['Yacine B.', 'Amine K.', 'Sofiane M.', 'Rachid T.', 'Karim A.', 'Mohamed S.', 'Omar F.', 'Ali B.', 'Youcef H.', 'Abdelkader D.'];
-const PAYMENT_OPTIONS = ['cash', 'credit', 'transfer'];
-
 interface FilterDropdownProps {
   label: string;
   options: { value: string; label: string }[];
   selected: string[];
   onToggle: (value: string) => void;
   onClear: () => void;
+  isLoading?: boolean;
 }
 
-function FilterDropdown({ label, options, selected, onToggle, onClear }: FilterDropdownProps) {
+function FilterDropdown({ label, options, selected, onToggle, onClear, isLoading }: FilterDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
@@ -67,31 +66,43 @@ function FilterDropdown({ label, options, selected, onToggle, onClear }: FilterD
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48 rounded-xl p-1.5">
-        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2">{label}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {selected.length > 0 && (
-          <>
-            <DropdownMenuCheckboxItem
-              checked={false}
-              onCheckedChange={onClear}
-              className="rounded-lg cursor-pointer text-xs text-primary"
-              onSelect={(e) => e.preventDefault()}
-            >
-              Clear all
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
-        {options.map((opt) => (
-          <DropdownMenuCheckboxItem
-            key={opt.value}
-            checked={selected.includes(opt.value)}
-            onCheckedChange={() => onToggle(opt.value)}
-            className="rounded-lg cursor-pointer text-xs"
-          >
-            {opt.label}
-          </DropdownMenuCheckboxItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2">{label}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {selected.length > 0 && (
+            <>
+              <DropdownMenuCheckboxItem
+                checked={false}
+                onCheckedChange={onClear}
+                className="rounded-lg cursor-pointer text-xs text-primary"
+                onSelect={(e) => e.preventDefault()}
+              >
+                Clear all
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          {isLoading ? (
+            <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+              Loading {label.toLowerCase()}...
+            </div>
+          ) : options.length === 0 ? (
+            <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+              No {label.toLowerCase()} found
+            </div>
+          ) : (
+            options.map((opt) => (
+              <DropdownMenuCheckboxItem
+                key={opt.value}
+                checked={selected.includes(opt.value)}
+                onCheckedChange={() => onToggle(opt.value)}
+                className="rounded-lg cursor-pointer text-xs"
+              >
+                {opt.label}
+              </DropdownMenuCheckboxItem>
+            ))
+          )}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -100,16 +111,38 @@ function FilterDropdown({ label, options, selected, onToggle, onClear }: FilterD
 export function OrderFilters() {
   const { filters, setFilter, resetFilters } = useOrdersStore();
   const [dateOpen, setDateOpen] = useState(false);
+  const [realRegions, setRealRegions] = useState<string[]>([]);
+  const [loadingRegions, setLoadingRegions] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    regionsService
+      .list()
+      .then((res) => {
+        if (active && res.data) {
+          const names = Array.from(new Set(res.data.map((r) => r.name).filter(Boolean)));
+          setRealRegions(names);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch real regions for order filters:', err);
+      })
+      .finally(() => {
+        if (active) setLoadingRegions(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const activeFilterCount =
     filters.status.length +
     filters.region.length +
-    filters.delegate.length +
-    filters.paymentMethod.length +
     (filters.dateRange.start ? 1 : 0) +
     (filters.minAmount !== null ? 1 : 0);
 
-  const toggleArrayFilter = (key: 'status' | 'region' | 'delegate' | 'paymentMethod', value: string) => {
+  const toggleArrayFilter = (key: 'status' | 'region', value: string) => {
     const current = filters[key] as string[];
     const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
     setFilter(key, next as any);
@@ -149,28 +182,11 @@ export function OrderFilters() {
         {/* Region Filter */}
         <FilterDropdown
           label="Region"
-          options={REGION_OPTIONS.map((r) => ({ value: r, label: r }))}
+          options={realRegions.map((r) => ({ value: r, label: r }))}
           selected={filters.region}
           onToggle={(v) => toggleArrayFilter('region', v)}
           onClear={() => setFilter('region', [])}
-        />
-
-        {/* Delegate Filter */}
-        <FilterDropdown
-          label="Delegate"
-          options={DELEGATE_OPTIONS.map((d) => ({ value: d, label: d }))}
-          selected={filters.delegate}
-          onToggle={(v) => toggleArrayFilter('delegate', v)}
-          onClear={() => setFilter('delegate', [])}
-        />
-
-        {/* Payment Method Filter */}
-        <FilterDropdown
-          label="Payment"
-          options={PAYMENT_OPTIONS.map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))}
-          selected={filters.paymentMethod}
-          onToggle={(v) => toggleArrayFilter('paymentMethod', v)}
-          onClear={() => setFilter('paymentMethod', [])}
+          isLoading={loadingRegions}
         />
 
         {/* Date Range */}

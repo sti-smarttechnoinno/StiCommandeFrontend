@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Globe, Search, Plus } from 'lucide-react';
+import { Globe, Search, Plus, MapPin } from 'lucide-react';
 import { useRegionsStore } from '../store';
 
 export function RegionsEmptyState({ onCreateRegion }: { onCreateRegion?: () => void }) {

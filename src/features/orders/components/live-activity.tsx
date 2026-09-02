@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const TYPE_CONFIG: Record<ActivityItem['type'], { icon: React.ReactNode; color: 
 };
 
 export function LiveActivity() {
+  const router = useRouter();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -99,7 +101,8 @@ export function LiveActivity() {
               return (
                 <div
                   key={activity.id}
-                  className="group flex items-start gap-3 p-2 rounded-xl hover:bg-muted/40 transition-colors relative"
+                  onClick={() => router.push(`/orders/${activity.id}`)}
+                  className="group flex items-start gap-3 p-2 rounded-xl hover:bg-muted/60 cursor-pointer transition-colors relative"
                 >
                   {/* Timeline line */}
                   {i < activities.length - 1 && (

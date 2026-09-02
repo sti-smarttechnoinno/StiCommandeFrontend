@@ -327,7 +327,7 @@ export function CreateOrderForm() {
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <UserCheck className="h-3.5 w-3.5 text-primary" /> Target Client <span className="text-primary">*</span>
                 </label>
-                <Select value={selectedClientId} onValueChange={(val) => setSelectedClientId(val)}>
+                <Select value={selectedClientId} onValueChange={(val) => setSelectedClientId(val || '')}>
                   <SelectTrigger className="w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs">
                     <SelectValue placeholder="Choose a client..." />
                   </SelectTrigger>
@@ -413,7 +413,7 @@ export function CreateOrderForm() {
                         <td className="px-4 py-3">
                           <Select
                             value={row.productId}
-                            onValueChange={(val) => handleProductChange(row.id, val)}
+                            onValueChange={(val) => val && handleProductChange(row.id, val)}
                           >
                             <SelectTrigger className="w-full h-10 text-xs font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20">
                               <SelectValue />

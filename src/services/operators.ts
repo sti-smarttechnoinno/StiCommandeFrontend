@@ -13,20 +13,8 @@ export interface OperatorData {
 
 export const operatorsService = {
   async list(params?: { active_only?: boolean; search?: string }): Promise<{ data: OperatorData[] }> {
-    try {
-      const response = await api.get('/operators', { params });
-      return response.data;
-    } catch (error) {
-      console.warn('Failed to fetch operators from API, using fallback', error);
-      return {
-        data: [
-          { id: 1, name: 'Mobilis', code: 'MOB', color: '#10b981', is_active: true },
-          { id: 2, name: 'Ooredoo', code: 'OOR', color: '#f43f5e', is_active: true },
-          { id: 3, name: 'Djezzy', code: 'DJZ', color: '#f59e0b', is_active: true },
-          { id: 4, name: 'Other', code: 'OTH', color: '#64748b', is_active: true },
-        ],
-      };
-    }
+    const response = await api.get('/operators', { params });
+    return response.data;
   },
 
   async create(data: Partial<OperatorData>): Promise<{ data: OperatorData; message: string }> {

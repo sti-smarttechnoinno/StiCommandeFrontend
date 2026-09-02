@@ -130,8 +130,8 @@ export function ClientObjectivesCard({ clientId, clientName }: ClientObjectivesC
   const [saving, setSaving] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [targetRevenue, setTargetRevenue] = useState<string>('500000');
-  const [targetOrders, setTargetOrders] = useState<string>('10');
+  const [targetRevenue, setTargetRevenue] = useState<string>('');
+  const [targetOrders, setTargetOrders] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
   const fetchObjectives = useCallback(async () => {
@@ -156,8 +156,8 @@ export function ClientObjectivesCard({ clientId, clientName }: ClientObjectivesC
 
     setSelectedYear(monthData?.year ?? currentY);
     setSelectedMonth(monthData?.month ?? currentM);
-    setTargetRevenue(monthData?.targetRevenue ? String(monthData.targetRevenue) : '500000');
-    setTargetOrders(monthData?.targetOrders ? String(monthData.targetOrders) : '10');
+    setTargetRevenue(monthData?.isConfigured && monthData?.targetRevenue ? String(monthData.targetRevenue) : '');
+    setTargetOrders(monthData?.isConfigured && monthData?.targetOrders ? String(monthData.targetOrders) : '');
     setNotes(monthData?.notes ?? '');
     setDialogOpen(true);
   };
@@ -495,6 +495,7 @@ export function ClientObjectivesCard({ clientId, clientName }: ClientObjectivesC
               <Select
                 value={`${selectedYear}-${String(selectedMonth).padStart(2, '0')}`}
                 onValueChange={(val) => {
+                  if (!val) return;
                   const [y, m] = val.split('-').map(Number);
                   setSelectedYear(y);
                   setSelectedMonth(m);

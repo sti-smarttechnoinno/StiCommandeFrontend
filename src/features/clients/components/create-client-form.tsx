@@ -202,6 +202,8 @@ export function CreateClientForm() {
   const [delegateId, setDelegateId] = useState('');
   const [creditLimit, setCreditLimit] = useState<number>(1000000);
   const [outstandingBalance, setOutstandingBalance] = useState<number>(0);
+  const [targetRevenue, setTargetRevenue] = useState<number>(0);
+  const [targetOrders, setTargetOrders] = useState<number>(0);
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -318,7 +320,7 @@ export function CreateClientForm() {
     }
 
     setSubmitting(true);
-    const newClientPayload: Partial<ClientData> = {
+    const newClientPayload: any = {
       clientCode,
       name: name.trim(),
       clientType,
@@ -332,6 +334,8 @@ export function CreateClientForm() {
       delegateName: selectedDelegate?.name || 'Unassigned',
       creditLimit: Number(creditLimit) || 0,
       outstandingBalance: Number(outstandingBalance) || 0,
+      targetRevenue: Number(targetRevenue) || 0,
+      targetOrders: Number(targetOrders) || 0,
       notes: notes.trim() || undefined,
     };
 
@@ -553,7 +557,7 @@ export function CreateClientForm() {
                 <div>
                   <CardTitle className="text-base font-bold">Contact & Geographic Location</CardTitle>
                   <CardDescription className="text-xs">
-                    Select Wilaya. Region is automatically resolved and assigned based on territory coverage.
+                    Enter contact details and select the Wilaya (Province).
                   </CardDescription>
                 </div>
               </div>
@@ -620,7 +624,7 @@ export function CreateClientForm() {
                     <SelectTrigger className="w-full h-10 min-h-[40px] text-sm font-semibold text-foreground bg-background rounded-xl border-border/70 focus:ring-primary/20 shadow-2xs">
                       <SelectValue placeholder="Select wilaya" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/60 p-1 max-h-60">
+                    <SelectContent side="bottom" align="start" className="w-[var(--radix-select-trigger-width)] max-h-60 rounded-xl border-border/60 p-1">
                       {WILAYAS_LIST.map((w) => (
                         <SelectItem key={w} value={w} className="text-xs font-semibold py-2 rounded-lg cursor-pointer">
                           {w}
@@ -806,7 +810,69 @@ export function CreateClientForm() {
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    Default is 0 DA for new client onboarding.
+                    Solde initial dû par le client à la création (défaut: 0 DA).
+                  </p>
+                </div>
+
+                {/* Monthly Revenue Objective (Optional) */}
+                <div className="space-y-2">
+                  <label htmlFor="targetRevenue" className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Objectif Mensuel Cible (CA en DA)</span>
+                    <span className="text-[10px] text-muted-foreground">Optionnel</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="targetRevenue"
+                      type="number"
+                      min={0}
+                      step={50000}
+                      value={targetRevenue || ''}
+                      onChange={(e) => setTargetRevenue(Number(e.target.value))}
+                      placeholder="ex: 500000"
+                      className="h-10 text-sm bg-background rounded-xl border-border/70 focus:border-primary focus:ring-primary/20 font-medium pr-16"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
+                      DA
+                    </div>
+                  </div>
+                  {/* Preset chips */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[10px] text-muted-foreground font-medium mr-1">Raccourcis:</span>
+                    {[250000, 500000, 1000000, 2000000].map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setTargetRevenue(val)}
+                        className={cn(
+                          'px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all duration-150',
+                          targetRevenue === val
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/50 text-muted-foreground border-border/60 hover:bg-muted'
+                        )}
+                      >
+                        {val >= 1000000 ? `${val / 1000000}M DA` : `${val / 1000}k DA`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Monthly Target Orders */}
+                <div className="space-y-2">
+                  <label htmlFor="targetOrders" className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Objectif Nombre de Commandes / Mois</span>
+                    <span className="text-[10px] text-muted-foreground">Optionnel</span>
+                  </label>
+                  <Input
+                    id="targetOrders"
+                    type="number"
+                    min={0}
+                    value={targetOrders || ''}
+                    onChange={(e) => setTargetOrders(Number(e.target.value))}
+                    placeholder="ex: 10"
+                    className="h-10 text-sm bg-background rounded-xl border-border/70 focus:border-primary focus:ring-primary/20 font-medium"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Quota prévisionnel de commandes mensuelles pour ce client.
                   </p>
                 </div>
               </div>

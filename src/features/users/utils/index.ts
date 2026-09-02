@@ -21,29 +21,27 @@ export function getRoleLabel(role: UserRole): string {
 }
 
 export function getStatusColor(status: UserStatus): string {
-  const colors: Record<UserStatus, string> = {
-    online: 'bg-emerald-500/10 text-emerald-600',
-    offline: 'bg-muted text-muted-foreground',
-    locked: 'bg-rose-500/10 text-rose-600',
-    suspended: 'bg-orange-500/10 text-orange-600',
-    invited: 'bg-blue-500/10 text-blue-600',
-  };
-  return colors[status];
+  const s = (status || '').toLowerCase();
+  if (s === 'blocked' || s === 'locked' || s === 'suspended' || s === 'bloque' || s === 'bloqué') {
+    return 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30';
+  }
+  return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
 }
 
 export function getStatusDot(status: UserStatus): string {
-  const dots: Record<UserStatus, string> = {
-    online: 'bg-emerald-500',
-    offline: 'bg-muted-foreground',
-    locked: 'bg-rose-500',
-    suspended: 'bg-orange-500',
-    invited: 'bg-blue-500',
-  };
-  return dots[status];
+  const s = (status || '').toLowerCase();
+  if (s === 'blocked' || s === 'locked' || s === 'suspended' || s === 'bloque' || s === 'bloqué') {
+    return 'bg-rose-500';
+  }
+  return 'bg-emerald-500';
 }
 
 export function getStatusLabel(status: UserStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  const s = (status || '').toLowerCase();
+  if (s === 'blocked' || s === 'locked' || s === 'suspended' || s === 'bloque' || s === 'bloqué') {
+    return 'Bloqué';
+  }
+  return 'Autorisé';
 }
 
 export function getEventColor(status: string): string {

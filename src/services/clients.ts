@@ -154,11 +154,14 @@ export const clientsService = {
     return data;
   },
 
-  async create(client: Partial<ClientData>): Promise<ClientData> {
+  async create(client: Partial<ClientData> & { targetRevenue?: number; targetOrders?: number }): Promise<ClientData> {
     const payload = {
       ...client,
       client_type: client.clientType,
       credit_limit: client.creditLimit,
+      outstanding_balance: client.outstandingBalance,
+      target_revenue: client.targetRevenue,
+      target_orders: client.targetOrders,
       delegate_id: client.delegateId && !isNaN(Number(client.delegateId)) ? Number(client.delegateId) : undefined,
       delegate_name: client.delegateName,
       delegateName: client.delegateName,

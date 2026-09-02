@@ -79,7 +79,8 @@ export interface MonthlyObjectiveData {
   month: number;
   monthName: string;
   targetRevenue: number;
-  achievedRevenue: number;
+  achievedRevenue: number; // Volume Objectif (Prix Unitaire Catalogue)
+  actualRevenue?: number;  // CA Réalisé Ventes (Net Facturé)
   remainingRevenue: number;
   revenuePercentage: number;
   targetOrders: number;

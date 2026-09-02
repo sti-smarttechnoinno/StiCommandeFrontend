@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   useReactTable,
   getCoreRowModel,
@@ -64,6 +65,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; style: string; dot: st
 import { ordersService, type OrderData } from '@/services/orders';
 
 export function OrdersTable() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,9 +98,14 @@ export function OrdersTable() {
         accessorKey: 'order_code',
         header: 'Order ID',
         cell: ({ row }) => (
-          <span className="font-semibold font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded tracking-wider">
+          <button
+            type="button"
+            onClick={() => router.push(`/orders/${row.original.id}`)}
+            className="font-semibold font-mono text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded tracking-wider transition-colors cursor-pointer"
+            title="View order"
+          >
             {row.original.order_code}
-          </span>
+          </button>
         ),
       },
       {
@@ -178,7 +185,13 @@ export function OrdersTable() {
         header: '',
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+              onClick={() => router.push(`/orders/${row.original.id}`)}
+              title="View order"
+            >
               <Eye className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground">

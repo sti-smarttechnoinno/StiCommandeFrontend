@@ -51,7 +51,7 @@ export function DelegatePerformance() {
   }, []);
 
   return (
-    <Card className="border border-border/40 shadow-xs rounded-2xl overflow-hidden flex flex-col justify-between h-full">
+    <Card className="border border-border/40 shadow-xs rounded-2xl overflow-hidden flex flex-col justify-start h-full">
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -80,7 +80,7 @@ export function DelegatePerformance() {
         </Link>
       </CardHeader>
 
-      <CardContent className="p-3 flex-1 flex flex-col justify-center space-y-1">
+      <CardContent className="p-3 flex-1 flex flex-col justify-start space-y-1">
         {loading ? (
           <div className="space-y-2 p-2 w-full">
             {[1, 2, 3].map((i) => (

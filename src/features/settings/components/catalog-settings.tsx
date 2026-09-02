@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,9 @@ import {
   Tag,
   Hash,
   AlertCircle,
+  Zap,
+  Truck,
+  FileCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,6 +55,8 @@ export function CatalogSettings() {
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
   const [catIcon, setCatIcon] = useState('package');
+  const [catWorkflowType, setCatWorkflowType] = useState<'virtual' | 'physical'>('physical');
+  const [catRequiresDelivery, setCatRequiresDelivery] = useState<boolean>(true);
   const [submittingCat, setSubmittingCat] = useState(false);
 
   const loadData = async () => {
@@ -151,11 +157,16 @@ export function CatalogSettings() {
       setCatName(cat.name);
       setCatDesc(cat.description || '');
       setCatIcon(cat.icon || 'package');
+      const isVirt = cat.workflow_type === 'virtual' || (!cat.requires_delivery && cat.workflow_type !== 'physical');
+      setCatWorkflowType(isVirt ? 'virtual' : 'physical');
+      setCatRequiresDelivery(!isVirt);
     } else {
       setEditingCat(null);
       setCatName('');
       setCatDesc('');
       setCatIcon('package');
+      setCatWorkflowType('physical');
+      setCatRequiresDelivery(true);
     }
     setCatDialogOpen(true);
   };
@@ -167,18 +178,20 @@ export function CatalogSettings() {
     }
     setSubmittingCat(true);
     try {
+      const payload = {
+        name: catName.trim(),
+        description: catDesc.trim(),
+        icon: catIcon,
+        workflow_type: catWorkflowType,
+        requires_delivery: catRequiresDelivery,
+      };
+
       if (editingCat) {
-        await categoriesService.update(editingCat.id, {
-          name: catName.trim(),
-          description: catDesc.trim(),
-          icon: catIcon,
-        });
+        await categoriesService.update(editingCat.id, payload);
         toast.success(`Category "${catName}" updated!`);
       } else {
         await categoriesService.create({
-          name: catName.trim(),
-          description: catDesc.trim(),
-          icon: catIcon,
+          ...payload,
           is_active: true,
         });
         toast.success(`Category "${catName}" created!`);
@@ -372,58 +385,129 @@ export function CatalogSettings() {
                 No categories configured yet. Click "Add Category" to create one.
               </div>
             ) : (
-              categories.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center justify-between p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-foreground">{cat.name}</span>
-                      <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/60">
-                        {cat.slug}
-                      </Badge>
+              categories.map((cat) => {
+                const isVirtual = cat.workflow_type === 'virtual' || (!cat.requires_delivery && cat.workflow_type !== 'physical');
+                return (
+                  <div
+                    key={cat.id}
+                    className="flex items-center justify-between p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors flex-wrap gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-foreground">{cat.name}</span>
+                        <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground border-border/60">
+                          {cat.slug}
+                        </Badge>
+                        {isVirtual ? (
+                          <Badge variant="outline" className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1">
+                            <Zap className="h-3 w-3" /> Recharge & Virtuel (En attente ➔ Validée)
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 gap-1">
+                            <Truck className="h-3 w-3" /> SIM & Tickets (En attente ➔ Validée ➔ Expédition ➔ Livrée)
+                          </Badge>
+                        )}
+                      </div>
+                      {cat.description && (
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">
+                          {cat.description}
+                        </p>
+                      )}
                     </div>
-                    {cat.description && (
-                      <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                        {cat.description}
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5">
-                      <Switch
-                        checked={cat.is_active}
-                        onCheckedChange={() => handleToggleCatActive(cat)}
-                      />
-                      <span className="text-[11px] font-semibold text-muted-foreground">
-                        {cat.is_active ? 'Active' : 'Disabled'}
-                      </span>
-                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          checked={cat.is_active}
+                          onCheckedChange={() => handleToggleCatActive(cat)}
+                        />
+                        <span className="text-[11px] font-semibold text-muted-foreground">
+                          {cat.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-1 border-l border-border/40 pl-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenCatDialog(cat)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteCat(cat)}
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-500"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1 border-l border-border/40 pl-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenCatDialog(cat)}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCat(cat)}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-500"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
+          </CardContent>
+        </Card>
+
+        {/* Category Workflow Explanation & Rules Card */}
+        <Card className="border border-border/60 shadow-xs rounded-2xl bg-card overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-3 border-b border-border/40">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <FileCheck className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold tracking-tight">
+                  Cycles de Statuts & Acheminement des Commandes
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Règles de génération automatique du statut et du suivi logistique selon les catégories d'articles
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Virtual Flow Card */}
+              <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  <Zap className="h-4 w-4" />
+                  <span>Recharges & Télécom Virtuel</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Pour les recharges électroniques et forfaits, la commande comporte <strong>2 étapes</strong> : <br />
+                  <span className="font-mono text-foreground font-semibold">1. En attente ➔ 2. Validée</span>.<br />
+                  Finalisation directe dès la validation administrative. Aucune expédition requise.
+                </p>
+              </div>
+
+              {/* Physical Flow Card */}
+              <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400">
+                  <Truck className="h-4 w-4" />
+                  <span>Cartes SIM & Tickets physiques</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Pour les biens matériels, le cycle complet comporte <strong>4 étapes</strong> : <br />
+                  <span className="font-mono text-foreground font-semibold">1. En attente ➔ 2. Validée ➔ 3. Expédition ➔ 4. Livrée</span>.<br />
+                  Acheminement physique par le délégué ou la flotte régionale jusqu'au client.
+                </p>
+              </div>
+
+              {/* Partial Fulfillment Card */}
+              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Gestion du Partiel (Partially Validated)</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Lorsqu'une partie des unités est validée ou remise (ex: 20/50 SIM ou 5 000 DA sur 10 000 DA), la commande passe au statut <span className="font-bold text-amber-600">Partiel</span> avec suivi précis des quantités restantes.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -535,6 +619,56 @@ export function CatalogSettings() {
                 placeholder="e.g. Flexy electronic mobile credit top-up"
                 className="h-10 text-sm rounded-xl border-border/70"
               />
+            </div>
+
+            {/* Workflow Lifecycle Selector */}
+            <div className="space-y-2 pt-2 border-t border-border/40">
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <FileCheck className="h-3.5 w-3.5 text-primary" /> Cycle de Traitement & Acheminement *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatWorkflowType('virtual');
+                    setCatRequiresDelivery(false);
+                  }}
+                  className={cn(
+                    "p-3 rounded-xl border text-left transition-all flex flex-col gap-1 cursor-pointer",
+                    catWorkflowType === 'virtual'
+                      ? "border-emerald-500 bg-emerald-500/10 text-foreground ring-1 ring-emerald-500"
+                      : "border-border/60 hover:bg-muted/40 text-muted-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <Zap className="h-3.5 w-3.5" /> Recharges & Virtuel
+                  </div>
+                  <p className="text-[11px] leading-tight text-muted-foreground">
+                    2 étapes : En attente ➔ Validée. Aucune expédition requise.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatWorkflowType('physical');
+                    setCatRequiresDelivery(true);
+                  }}
+                  className={cn(
+                    "p-3 rounded-xl border text-left transition-all flex flex-col gap-1 cursor-pointer",
+                    catWorkflowType === 'physical'
+                      ? "border-blue-500 bg-blue-500/10 text-foreground ring-1 ring-blue-500"
+                      : "border-border/60 hover:bg-muted/40 text-muted-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+                    <Truck className="h-3.5 w-3.5" /> SIM & Tickets
+                  </div>
+                  <p className="text-[11px] leading-tight text-muted-foreground">
+                    4 étapes : En attente ➔ Validée ➔ Expédition ➔ Livrée.
+                  </p>
+                </button>
+              </div>
             </div>
           </div>
 

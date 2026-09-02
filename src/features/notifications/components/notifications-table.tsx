@@ -12,7 +12,7 @@ import { notificationsService } from '@/services/notifications';
 import type { Notification } from '../types';
 import { getCategoryColor, getPriorityColor, getStatusColor, getStatusDot, getStatusLabel } from '../utils';
 import { toast } from 'sonner';
-import { Eye, Archive, CheckCircle2, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Bell, BellOff } from 'lucide-react';
+import { Eye, Archive, CheckCircle2, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Bell, BellOff, Loader2 } from 'lucide-react';
 
 export function NotificationsTable() {
   const {
@@ -114,8 +114,16 @@ export function NotificationsTable() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-xs text-muted-foreground">
-                    Loading notifications...
+                  <TableCell colSpan={7} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2.5 py-8">
+                      <div className="p-3 rounded-full bg-primary/10 text-primary">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-foreground">Fetching notifications registry...</p>
+                        <p className="text-[11px] text-muted-foreground">Loading system alerts, orders and announcements</p>
+                      </div>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : data.length === 0 ? (

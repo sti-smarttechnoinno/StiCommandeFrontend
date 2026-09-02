@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<string, { label: string; style: string; dot: string 
 export function ProductStatusBadge({ product }: { product: Partial<ExtendedProduct> & { status?: string; stock?: number; minStock?: number; stockQuantity?: number } }) {
   const stock = product.stockQuantity ?? product.stock ?? 0;
   const minStock = product.minStock ?? 100;
-  let status = product.status || 'active';
+  let status: string = product.status || 'active';
 
   if (status === 'active') {
     if (stock === 0) status = 'out_of_stock';

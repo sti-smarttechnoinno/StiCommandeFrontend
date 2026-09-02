@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Check, X, ShieldCheck, MapPin } from 'lucide-react';
+import { Check, X, ShieldCheck, MapPin, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ordersService, type OrderData } from '@/services/orders';
 
@@ -19,6 +20,7 @@ interface PendingOrderItem {
 }
 
 export function ApprovalQueue() {
+  const router = useRouter();
   const [orders, setOrders] = useState<PendingOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,9 +99,14 @@ export function ApprovalQueue() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/orders/${order.id}`)}
+                      className="font-mono text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-md transition-colors text-left cursor-pointer"
+                      title="View order details"
+                    >
                       {order.orderCode}
-                    </span>
+                    </button>
                     <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
                       <MapPin className="h-3 w-3 text-amber-500" />
                       {order.region}
@@ -112,6 +119,16 @@ export function ApprovalQueue() {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push(`/orders/${order.id}`)}
+                    className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                    title="View order"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"

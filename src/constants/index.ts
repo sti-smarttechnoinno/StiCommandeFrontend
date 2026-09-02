@@ -9,6 +9,7 @@ import {
   BarChart3,
   FileText,
   Bell,
+  Send,
   Settings,
   HardDrive,
 } from 'lucide-react';
@@ -19,21 +20,24 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   badge?: number;
+  permission?: string;
+  adminOnly?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Orders', href: '/orders', icon: ShoppingCart },
-  { label: 'Clients', href: '/clients', icon: Users },
-  { label: 'Delegates', href: '/delegates', icon: UserPlus },
-  { label: 'Products', href: '/products', icon: Package },
-  { label: 'Regions', href: '/regions', icon: Globe },
-  { label: 'Wilayas', href: '/wilayas', icon: MapPin },
-  { label: 'Stock', href: '/stock', icon: HardDrive },
-  { label: 'Reports', href: '/reports', icon: BarChart3 },
-  { label: 'Users', href: '/users', icon: FileText },
+  { label: 'Orders', href: '/orders', icon: ShoppingCart, permission: 'orders.view' },
+  { label: 'Clients', href: '/clients', icon: Users, permission: 'clients.view' },
+  { label: 'Delegates', href: '/delegates', icon: UserPlus, permission: 'users.manage' },
+  { label: 'Products', href: '/products', icon: Package, permission: 'products.view' },
+  { label: 'Regions', href: '/regions', icon: Globe, permission: 'settings.manage' },
+  { label: 'Wilayas', href: '/wilayas', icon: MapPin, permission: 'settings.manage' },
+  { label: 'Stock', href: '/stock', icon: HardDrive, permission: 'products.manage' },
+  { label: 'Reports', href: '/reports', icon: BarChart3, permission: 'reports.view' },
+  { label: 'Users', href: '/users', icon: FileText, permission: 'users.manage' },
   { label: 'Notifications', href: '/notifications', icon: Bell },
-  { label: 'Settings', href: '/settings', icon: Settings },
+  { label: 'Push Broadcasts', href: '/push-notifications', icon: Send, permission: 'settings.manage' },
+  { label: 'Settings', href: '/settings', icon: Settings, permission: 'settings.manage' },
 ];
 
 export const BOTTOM_NAV_ITEMS: NavItem[] = [];

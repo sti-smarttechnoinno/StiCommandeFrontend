@@ -20,9 +20,11 @@ import { BottomToolbar } from '@/features/orders/components/bottom-toolbar';
 import { Download, RefreshCw, Plus, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { can } = usePermissions();
   const [mounted, setMounted] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('Tuesday, July 29, 2026');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -100,15 +102,17 @@ export default function OrdersPage() {
             <span>Refresh</span>
           </Button>
 
-          {/* New Order Primary Button (Navigates to /orders/new page) */}
-          <Button
-            size="sm"
-            onClick={() => router.push('/orders/new')}
-            className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus className="h-3.5 w-3.5 text-primary-foreground" />
-            <span>New Order</span>
-          </Button>
+          {/* New Order Primary Button (Visible only if user has orders.create) */}
+          {can('orders.create') && (
+            <Button
+              size="sm"
+              onClick={() => router.push('/orders/new')}
+              className="gap-2 rounded-full h-9 px-4 font-bold text-xs bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+              <span>New Order</span>
+            </Button>
+          )}
         </div>
       </div>
 

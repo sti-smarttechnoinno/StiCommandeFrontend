@@ -11,6 +11,7 @@ import { useWebSocketOrders } from '@/hooks/use-websocket-orders';
 import { notificationsService } from '@/services/notifications';
 import { useNotificationsStore } from '@/features/notifications/store';
 import { useState, useEffect } from 'react';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export function Sidebar() {
   const { unvalidatedCount } = useWebSocketOrders();
   const refreshKey = useNotificationsStore((s) => s.refreshKey);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+  const { can, user } = usePermissions();
 
   useEffect(() => {
     notificationsService
@@ -27,6 +29,16 @@ export function Sidebar() {
       .then((res) => setUnreadNotificationsCount(res.unreadCount))
       .catch(() => setUnreadNotificationsCount(0));
   }, [refreshKey, pathname]);
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.permission && !can(item.permission)) {
+      return false;
+    }
+    if (item.adminOnly && user?.role !== 'admin') {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <>
@@ -91,9 +103,9 @@ export function Sidebar() {
           )}
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items Filtered by Permissions */}
         <nav className="flex-1 overflow-y-auto px-3 py-3">
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
             let badgeValue: number | undefined = undefined;

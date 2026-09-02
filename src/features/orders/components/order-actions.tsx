@@ -49,7 +49,7 @@ export function OrderActions({
         >
           <Eye className="h-3.5 w-3.5" />
         </TooltipTrigger>
-        <TooltipContent>View details</TooltipContent>
+        <TooltipContent>View order</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -95,6 +95,10 @@ export function OrderActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44 rounded-xl p-1.5">
+          <DropdownMenuItem className="rounded-lg cursor-pointer text-xs" onClick={() => onView(orderId)}>
+            <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+            View Order
+          </DropdownMenuItem>
           <DropdownMenuItem className="rounded-lg cursor-pointer text-xs" onClick={() => onPrint(orderId)}>
             <Printer className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
             Print Order

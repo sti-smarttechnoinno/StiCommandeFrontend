@@ -132,8 +132,8 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
   const [saving, setSaving] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-  const [targetRevenue, setTargetRevenue] = useState<string>('1500000');
-  const [targetOrders, setTargetOrders] = useState<string>('50');
+  const [targetRevenue, setTargetRevenue] = useState<string>('');
+  const [targetOrders, setTargetOrders] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
   const fetchObjectives = useCallback(async () => {
@@ -158,8 +158,8 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
 
     setSelectedYear(monthData?.year ?? currentY);
     setSelectedMonth(monthData?.month ?? currentM);
-    setTargetRevenue(monthData?.targetRevenue ? String(monthData.targetRevenue) : '1500000');
-    setTargetOrders(monthData?.targetOrders ? String(monthData.targetOrders) : '50');
+    setTargetRevenue(monthData?.isConfigured && monthData?.targetRevenue ? String(monthData.targetRevenue) : '');
+    setTargetOrders(monthData?.isConfigured && monthData?.targetOrders ? String(monthData.targetOrders) : '');
     setNotes(monthData?.notes ?? '');
     setDialogOpen(true);
   };
@@ -250,7 +250,7 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
                 {currentMonth && getStatusBadge(currentMonth.status, currentMonth.revenuePercentage)}
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Suivi en temps réel des ventes et du quota attribué
+                Suivi en temps réel des ventes (calculé sur le prix unitaire catalogue: Quantité × Prix unitaire)
               </CardDescription>
             </div>
           </div>
@@ -320,28 +320,38 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-                  <span>Réalisé: <strong className="text-foreground">{formatFullCurrency(currentMonth.achievedRevenue)}</strong></span>
-                  <span>Objectif: <strong className="text-foreground">{formatFullCurrency(currentMonth.targetRevenue)}</strong></span>
+                  <span>Objectif Réalisé: <strong className="text-foreground">{formatFullCurrency(currentMonth.achievedRevenue)}</strong></span>
+                  <span>Objectif Fixé: <strong className="text-foreground">{formatFullCurrency(currentMonth.targetRevenue)}</strong></span>
                 </div>
               </div>
 
-              {/* 4 Metric Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                <div className="p-3.5 rounded-xl border border-border/40 bg-muted/30 space-y-1">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Objectif CA</span>
+              {/* 5 Metric Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                <div className="p-3 rounded-xl border border-border/40 bg-muted/30 space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Objectif Fixé</span>
                   <p className="text-sm font-extrabold text-foreground">{formatCurrency(currentMonth.targetRevenue)}</p>
                 </div>
-                <div className="p-3.5 rounded-xl border border-border/40 bg-muted/30 space-y-1">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">CA Réalisé</span>
-                  <p className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(currentMonth.achievedRevenue)}</p>
+                <div className="p-3 rounded-xl border border-border/40 bg-muted/30 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Obj. Réalisé</span>
+                    <span className="text-[9px] text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded">Catalogue</span>
+                  </div>
+                  <p className="text-sm font-extrabold text-primary">{formatCurrency(currentMonth.achievedRevenue)}</p>
                 </div>
-                <div className="p-3.5 rounded-xl border border-border/40 bg-muted/30 space-y-1">
+                <div className="p-3 rounded-xl border border-border/40 bg-muted/30 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">CA Réalisé</span>
+                    <span className="text-[9px] text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">Ventes</span>
+                  </div>
+                  <p className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(currentMonth.actualRevenue ?? currentMonth.achievedRevenue)}</p>
+                </div>
+                <div className="p-3 rounded-xl border border-border/40 bg-muted/30 space-y-1">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Commandes</span>
                   <p className="text-sm font-extrabold text-foreground">
                     {currentMonth.achievedOrders} {currentMonth.targetOrders > 0 ? `/ ${currentMonth.targetOrders}` : 'commandes'}
                   </p>
                 </div>
-                <div className="p-3.5 rounded-xl border border-border/40 bg-muted/30 space-y-1">
+                <div className="p-3 rounded-xl border border-border/40 bg-muted/30 space-y-1">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Reste à Réaliser</span>
                   <p className="text-sm font-extrabold text-foreground">
                     {currentMonth.remainingRevenue > 0 ? formatCurrency(currentMonth.remainingRevenue) : '0 DA (Atteint 🎉)'}
@@ -365,7 +375,7 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
                 Historique & Archives des Objectifs Mensuels
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Bilan mois par mois des quotas et taux d'atteinte
+                Bilan mois par mois des quotas, chiffre d'affaires vendu et taux d'atteinte
               </CardDescription>
             </div>
           </div>
@@ -393,7 +403,8 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
                   <TableRow className="border-border/40">
                     <TableHead className="text-xs font-bold text-left px-4">Mois / Année</TableHead>
                     <TableHead className="text-xs font-bold text-right px-4">Objectif Fixé</TableHead>
-                    <TableHead className="text-xs font-bold text-right px-4">Chiffre Réalisé</TableHead>
+                    <TableHead className="text-xs font-bold text-right px-4">Obj. Réalisé (Catalogue)</TableHead>
+                    <TableHead className="text-xs font-bold text-right px-4">CA Réalisé (Ventes)</TableHead>
                     <TableHead className="text-xs font-bold text-center px-4">Commandes</TableHead>
                     <TableHead className="text-xs font-bold text-center px-4">Taux d'Atteinte</TableHead>
                     <TableHead className="text-xs font-bold text-center px-4">Statut</TableHead>
@@ -417,8 +428,11 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
                       <TableCell className="text-right font-bold text-xs text-foreground px-4 py-3.5">
                         {m.targetRevenue > 0 ? formatCurrency(m.targetRevenue) : '—'}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-xs text-emerald-600 dark:text-emerald-400 px-4 py-3.5">
+                      <TableCell className="text-right font-bold text-xs text-primary px-4 py-3.5">
                         {formatCurrency(m.achievedRevenue)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-xs text-emerald-600 dark:text-emerald-400 px-4 py-3.5">
+                        {formatCurrency(m.actualRevenue ?? m.achievedRevenue)}
                       </TableCell>
                       <TableCell className="text-center text-xs text-muted-foreground font-medium px-4 py-3.5">
                         <strong className="text-foreground">{m.achievedOrders}</strong>
@@ -497,6 +511,7 @@ export function DelegateObjectivesCard({ delegateId, delegateName }: DelegateObj
               <Select
                 value={`${selectedYear}-${String(selectedMonth).padStart(2, '0')}`}
                 onValueChange={(val) => {
+                  if (!val) return;
                   const [y, m] = val.split('-').map(Number);
                   setSelectedYear(y);
                   setSelectedMonth(m);

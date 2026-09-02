@@ -86,4 +86,58 @@ export const notificationsService = {
     const { data } = await api.post<{ data: Announcement }>('/notifications/announcements', announcement);
     return data.data;
   },
+
+  async getSentBroadcasts(): Promise<SentBroadcastsResponse> {
+    const { data } = await api.get<SentBroadcastsResponse>('/notifications/sent-broadcasts');
+    return data;
+  },
+
+  async sendBroadcast(payload: SendBroadcastPayload): Promise<{ data: SentBroadcastData; message: string }> {
+    const { data } = await api.post<{ data: SentBroadcastData; message: string }>('/notifications/send-broadcast', payload);
+    return data;
+  },
 };
+
+export interface SentBroadcastData {
+  id: string;
+  title: string;
+  body: string;
+  category: string;
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  status: string;
+  direction?: 'sent_to_delegate' | 'received_from_system';
+  directionLabel?: string;
+  targetAudience: string;
+  targetType: 'all' | 'region' | 'delegate';
+  targetDevices: number;
+  receivedDevices: number;
+  deliveryRate: number;
+  channels: string[];
+  sender: string;
+  referenceId: string;
+  createdAt: string;
+  dateFormatted: string;
+  exactDate: string;
+}
+
+export interface SentBroadcastsKPIs {
+  totalSent: number;
+  totalReached: number;
+  avgDeliveryRate: number;
+  activeDevices: number;
+  registeredDelegates: number;
+}
+
+export interface SentBroadcastsResponse {
+  data: SentBroadcastData[];
+  kpis: SentBroadcastsKPIs;
+}
+
+export interface SendBroadcastPayload {
+  title: string;
+  body: string;
+  target_type: 'all' | 'region' | 'delegate';
+  target_id?: string;
+  category?: string;
+  priority?: 'low' | 'normal' | 'high' | 'critical';
+}

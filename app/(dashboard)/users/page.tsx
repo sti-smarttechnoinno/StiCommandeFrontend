@@ -12,38 +12,42 @@ import { UserDetailsDrawer } from '@/features/users/components/user-details-draw
 import { FloatingActionButton } from '@/features/users/components/floating-action-button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+import { RoleGuard } from '@/components/auth/role-guard';
+
 export default function UsersPage() {
   return (
-    <TooltipProvider delay={300}>
-      <div className="space-y-6">
-        {/* Page Hero Header */}
-        <UsersHeader />
+    <RoleGuard requiredPermission="users.manage">
+      <TooltipProvider delay={300}>
+        <div className="space-y-6">
+          {/* Page Hero Header */}
+          <UsersHeader />
 
-        {/* KPI Cards */}
-        <UsersKPICards />
+          {/* KPI Cards */}
+          <UsersKPICards />
 
-        {/* Integrated Filter Toolbar */}
-        <UsersToolbar />
+          {/* Integrated Filter Toolbar */}
+          <UsersToolbar />
 
-        {/* Full-Width Users Table */}
-        <UsersTable />
+          {/* Full-Width Users Table */}
+          <UsersTable />
 
-        {/* Bottom 3-Column Analytics & Security Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-          <ActiveSessionsCard />
-          <SecurityEventsCard />
-          <UserStatisticsCard />
+          {/* Bottom 3-Column Analytics & Security Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+            <ActiveSessionsCard />
+            <SecurityEventsCard />
+            <UserStatisticsCard />
+          </div>
+
+          {/* New User Modal */}
+          <NewUserDialog />
+
+          {/* User Details Drawer */}
+          <UserDetailsDrawer />
+
+          {/* Floating Action Button (mobile) */}
+          <FloatingActionButton />
         </div>
-
-        {/* New User Modal */}
-        <NewUserDialog />
-
-        {/* User Details Drawer */}
-        <UserDetailsDrawer />
-
-        {/* Floating Action Button (mobile) */}
-        <FloatingActionButton />
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </RoleGuard>
   );
 }

@@ -254,7 +254,7 @@ export function CreateOrderDialog({ open, onOpenChange, onOrderCreated }: Create
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground">Client *</label>
-                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <Select value={selectedClientId} onValueChange={(val) => setSelectedClientId(val || '')}>
                     <SelectTrigger className="h-9 text-xs rounded-xl border-border/60 bg-card">
                       <SelectValue placeholder="Choisir un client..." />
                     </SelectTrigger>
@@ -325,7 +325,7 @@ export function CreateOrderDialog({ open, onOpenChange, onOrderCreated }: Create
                         <td className="px-3 py-2">
                           <Select
                             value={row.productId}
-                            onValueChange={(val) => handleProductChange(row.id, val)}
+                            onValueChange={(val) => val && handleProductChange(row.id, val)}
                           >
                             <SelectTrigger className="h-8 text-xs rounded-lg border-border/50 bg-background">
                               <SelectValue />

@@ -14,6 +14,7 @@ import {
   Package,
   Shield,
   Clock,
+  Loader2,
 } from 'lucide-react';
 
 const ICON_THEMES = {
@@ -87,6 +88,21 @@ export function NotificationsKPICards() {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card
+            key={i}
+            className="p-5 flex items-center justify-center h-[116px] border border-border/40 bg-card rounded-[20px]"
+          >
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {kpis.map((kpi) => (
@@ -101,7 +117,7 @@ export function NotificationsKPICards() {
               </span>
               <div className="flex items-baseline gap-2 flex-wrap mb-1">
                 <span className="text-[28px] font-bold text-foreground tracking-tight leading-none">
-                  {loading ? '...' : kpi.value}
+                  {kpi.value}
                 </span>
               </div>
               <span className="text-[10px] text-muted-foreground/70 mt-2 block">{kpi.changeLabel}</span>

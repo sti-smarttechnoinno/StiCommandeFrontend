@@ -1,9 +1,10 @@
-export type UserRole = 'administrator' | 'manager' | 'delegate' | 'viewer';
-export type UserStatus = 'online' | 'offline' | 'locked' | 'suspended' | 'invited';
+export type UserRole = 'administrator' | 'manager' | 'delegate' | 'viewer' | 'commercial' | 'charge_compte' | string;
+export type UserStatus = 'authorized' | 'blocked' | 'online' | 'offline' | 'locked' | 'suspended' | 'invited' | string;
 
 export interface UserRow {
   id: string;
   name: string;
+  username?: string;
   email: string;
   phone: string;
   employeeId: string;
@@ -11,6 +12,7 @@ export interface UserRow {
   region: string;
   wilaya: string;
   status: UserStatus;
+  password?: string;
   lastLogin: string;
   lastLoginDate: string;
   twoFactorEnabled: boolean;

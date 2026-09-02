@@ -28,17 +28,25 @@ import {
 import { useTheme } from '@/components/layout/providers';
 import { notificationsService } from '@/services/notifications';
 import { useNotificationsStore } from '@/features/notifications/store';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useState, useEffect } from 'react';
 
 export function Header() {
   const router = useRouter();
   const { toggleSidebar, setSidebarMobileOpen } = useUIStore();
-  const { logout } = useAuthStore();
+  const { logout, fetchUser } = useAuthStore();
+  const { user, roleName, isCommercial, region } = usePermissions();
   const isMobile = useMediaQuery('(max-width: 1023px)');
   const { theme, setTheme } = useTheme();
 
   const refreshKey = useNotificationsStore((s) => s.refreshKey);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!user) {
+      fetchUser().catch(() => {});
+    }
+  }, [user, fetchUser]);
 
   useEffect(() => {
     notificationsService
@@ -51,6 +59,18 @@ export function Header() {
     await logout();
     router.push('/login');
   };
+
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : user?.username
+    ? user.username.slice(0, 2).toUpperCase()
+    : 'U';
 
   return (
     <header className="h-16 bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 gap-4">
@@ -122,36 +142,60 @@ export function Header() {
           <DropdownMenuTrigger className="flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full border border-border/70 bg-card hover:bg-muted/70 transition-all cursor-pointer outline-none group shadow-xs">
             <Avatar className="h-8 w-8 ring-2 ring-primary/20">
               <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                A
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block text-left">
               <span className="block text-xs font-semibold text-foreground leading-tight group-hover:text-primary transition-colors">
-                Admin
+                {user?.name || user?.username || 'Utilisateur'}
               </span>
-              <span className="block text-[10px] text-muted-foreground font-medium leading-tight">
-                Administrator
-              </span>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="block text-[10px] text-muted-foreground font-medium leading-tight">
+                  {roleName}
+                </span>
+                {isCommercial && region && (
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium leading-tight">
+                    • {region}
+                  </span>
+                )}
+              </div>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors hidden sm:block" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 rounded-xl p-1.5 shadow-lg border-border/80">
-            <div className="px-3 py-2 border-b border-border/60 mb-1 md:hidden">
-              <p className="text-xs font-semibold text-foreground">Admin</p>
-              <p className="text-[10px] text-muted-foreground">Administrator</p>
+          <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 shadow-lg border-border/80">
+            {/* Real User & Role Header in Dropdown */}
+            <div className="px-3 py-2.5 border-b border-border/60 mb-1">
+              <p className="text-xs font-bold text-foreground leading-tight">
+                {user?.name || user?.username || 'Utilisateur'}
+              </p>
+              {user?.username && (
+                <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                  @{user.username}
+                </p>
+              )}
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
+                  {roleName}
+                </span>
+                {isCommercial && region && (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-none">
+                    📍 {region}
+                  </span>
+                )}
+              </div>
             </div>
-            <DropdownMenuItem className="rounded-lg cursor-pointer">
+            <DropdownMenuItem className="rounded-lg cursor-pointer" onClick={() => router.push('/settings')}>
               <User className="mr-2 h-4 w-4 text-muted-foreground" />
-              Profile
+              Mon Profil
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg cursor-pointer">
+            <DropdownMenuItem className="rounded-lg cursor-pointer" onClick={() => router.push('/settings')}>
               <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
-              Settings
+              Paramètres
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem className="rounded-lg cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              Déconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

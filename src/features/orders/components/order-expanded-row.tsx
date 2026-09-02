@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatFullDate } from '../utils';
 import type { ExtendedOrder } from '../types';
-import { MapPin, FileText, Package, CheckCircle2, Minus, Plus, RotateCcw, AlertCircle, ShieldCheck, Loader2 } from 'lucide-react';
+import { MapPin, FileText, Package, CheckCircle2, Minus, Plus, RotateCcw, AlertCircle, ShieldCheck, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { ordersService } from '@/services/orders';
 
@@ -17,6 +18,7 @@ interface OrderExpandedRowProps {
 }
 
 export function OrderExpandedRow({ order, onUpdateStatus }: OrderExpandedRowProps) {
+  const router = useRouter();
   const [orderStatus, setOrderStatus] = useState<string>(order.status || 'pending');
   const [submitting, setSubmitting] = useState(false);
 
@@ -412,6 +414,17 @@ export function OrderExpandedRow({ order, onUpdateStatus }: OrderExpandedRowProp
               </div>
             </CardContent>
           </Card>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/orders/${order.id}`)}
+            className="w-full text-xs font-semibold gap-2 rounded-xl h-9 border-primary/30 text-primary hover:bg-primary/10 transition-all shadow-xs"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            <span>Voir la page détaillée</span>
+          </Button>
         </div>
       </div>
     </div>
